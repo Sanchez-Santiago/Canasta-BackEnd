@@ -1,0 +1,17 @@
+info:
+  name: MisGrupos
+  type: http
+  seq: 1
+http:
+  method: GET
+  url: "{{baseUrl}}/grupos"
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # GET `/grupos` (protegida)
+  Lista mis grupos (personal + grupales) con `rol` y `fecha_ingreso`.
+  Cada usuario tiene exactamente 1 grupo `personal` (creado al registrarse).

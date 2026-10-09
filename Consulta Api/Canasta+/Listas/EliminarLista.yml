@@ -1,0 +1,22 @@
+info:
+  name: EliminarLista
+  type: http
+  seq: 7
+http:
+  method: DELETE
+  url: "{{baseUrl}}/listas/:idLista"
+  params:
+    - name: idLista
+      value: "{{idLista}}"
+      type: path
+      description: ID de la lista (variable idLista)
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # DELETE `/listas/:idLista` (protegida)
+  Elimina la lista (y sus productos por CASCADE).
+  Solo creador de la lista o admin del grupo.

@@ -1,0 +1,22 @@
+info:
+  name: Miembros
+  type: http
+  seq: 4
+http:
+  method: GET
+  url: "{{baseUrl}}/grupos/:idGrupo/miembros"
+  params:
+    - name: idGrupo
+      value: "{{idGrupo}}"
+      type: path
+      description: ID del grupo (usa variable de entorno idGrupo)
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # GET `/grupos/:idGrupo/miembros` (protegida)
+  Lista todos los miembros del grupo remarcando el `rol` de cada usuario
+  (`administrador` primero, luego por nombre). Solo visible si perteneces al grupo.

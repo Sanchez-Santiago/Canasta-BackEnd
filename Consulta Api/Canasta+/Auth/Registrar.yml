@@ -1,0 +1,30 @@
+info:
+  name: Registrar
+  type: http
+  seq: 1
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/registrar"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Test",
+        "email": "test@canasta.local",
+        "contrasena": "123456"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # POST `/auth/registrar` (publica)
+  Crea un usuario (hash bcrypt de `contrasena`) y crea automaticamente su grupo personal.
+  Setea cookie httpOnly `auth_token` con el JWT.
+  Campos opcionales: `localidad`, `provincia`, `pais`, `domicilio`.
+  Alias: `/auth/register` hace lo mismo.

@@ -11,8 +11,13 @@ declare global {
 }
 
 function esRutaPublicaAuth(req: Request): boolean {
+  const path = req.path.replace(/\/+$/, "") || "/";
+
+  if (req.method === "GET" && (path === "" || path === "/")) {
+    return true;
+  }
+
   if (req.method !== "POST") return false;
-  const path = req.path.replace(/\/+$/, "");
 
   if (path === "/auth/registrar" || path === "/auth/register") {
     return true;

@@ -1,0 +1,32 @@
+info:
+  name: ActualizarGrupal
+  type: http
+  seq: 5
+http:
+  method: PUT
+  url: "{{baseUrl}}/grupos/:idGrupo"
+  params:
+    - name: idGrupo
+      value: "{{idGrupo}}"
+      type: path
+      description: ID del grupo (usa variable de entorno idGrupo)
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Compras del mes (editado)",
+        "descripcion": "Nueva descripcion"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # PUT `/grupos/:idGrupo` (protegida)
+  Edita un grupo `grupal`. Solo `administrador` del grupo.
+  El grupo `personal` NO se puede modificar (403).

@@ -6,6 +6,7 @@ import authRoutes from "./modules/user/user.router";
 import grupoRoutes from "./modules/grupo/grupo.router";
 import listaRoutes from "./modules/lista/lista.router";
 import productoListaRoutes from "./modules/productoLista/productoLista.router";
+import { renderHomePage } from "./shared/home";
 import { getDb } from "./config/database";
 import { env } from "./config/env";
 
@@ -16,6 +17,10 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use(authMiddleware);
+
+app.get("/", (_req, res) => {
+  res.status(200).type("html").send(renderHomePage());
+});
 
 app.use("/auth", authRoutes);
 app.use("/grupos", grupoRoutes);
@@ -47,6 +52,7 @@ async function iniciarServidor() {
     console.log(`🚀 Canasta+ backend escuchando en ${HOST}:${PORT}`);
     console.log(`🌍 Entorno: ${env.NODE_ENV}`);
     console.log(`🔗 API disponible en: ${API_URL}`);
+    console.log(`🏠 Home HTML en: ${API_URL}/`);
     console.log(`📚 Rutas de Auth:`);
     console.log(`   POST ${API_URL}/auth/registrar`);
     console.log(`   POST ${API_URL}/auth/login`);

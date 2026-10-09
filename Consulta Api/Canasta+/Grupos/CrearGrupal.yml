@@ -1,0 +1,28 @@
+info:
+  name: CrearGrupal
+  type: http
+  seq: 2
+http:
+  method: POST
+  url: "{{baseUrl}}/grupos/grupal"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Compras del mes",
+        "descripcion": "Grupo familiar",
+        "categoria": "hogar"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # POST `/grupos/grupal` (protegida)
+  Crea un grupo `grupal`. El creador queda como `administrador`.
+  Solo `nombre` es obligatorio. `descripcion` y `categoria` opcionales.

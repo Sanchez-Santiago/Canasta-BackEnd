@@ -1,0 +1,22 @@
+info:
+  name: EliminarProducto
+  type: http
+  seq: 6
+http:
+  method: DELETE
+  url: "{{baseUrl}}/productos-lista/:idProductoLista"
+  params:
+    - name: idProductoLista
+      value: "{{idProductoLista}}"
+      type: path
+      description: ID del producto (variable idProductoLista)
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # DELETE `/productos-lista/:idProductoLista` (protegida)
+  Elimina un producto. SOLO creador del producto, creador de la lista o admin del grupo.
+  Un miembro comun NO puede eliminarlo (403).

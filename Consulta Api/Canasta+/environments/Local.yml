@@ -1,0 +1,22 @@
+name: Local
+variables:
+  - name: baseUrl
+    value: http://localhost:3000
+    enabled: true
+    secret: false
+    description: URL base del backend en desarrollo local
+  - name: idGrupo
+    value: "1"
+    enabled: true
+    secret: false
+    description: ID de grupo para probar endpoints con :idGrupo
+  - name: idLista
+    value: "1"
+    enabled: true
+    secret: false
+    description: ID de lista para probar endpoints con :idLista
+  - name: idProductoLista
+    value: "1"
+    enabled: true
+    secret: false
+    description: ID de producto de lista para probar endpoints con :idProductoLista

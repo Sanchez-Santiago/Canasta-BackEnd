@@ -1,0 +1,22 @@
+info:
+  name: EliminarGrupal
+  type: http
+  seq: 6
+http:
+  method: DELETE
+  url: "{{baseUrl}}/grupos/:idGrupo"
+  params:
+    - name: idGrupo
+      value: "{{idGrupo}}"
+      type: path
+      description: ID del grupo (usa variable de entorno idGrupo)
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # DELETE `/grupos/:idGrupo` (protegida)
+  Elimina un grupo `grupal`. Solo `administrador` del grupo.
+  El grupo `personal` NO se puede eliminar (403).

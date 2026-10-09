@@ -1,0 +1,17 @@
+info:
+  name: Yo
+  type: http
+  seq: 3
+http:
+  method: GET
+  url: "{{baseUrl}}/auth/yo"
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # GET `/auth/yo` (protegida)
+  Devuelve el usuario autenticado segun la cookie `auth_token`.
+  Requiere haber hecho Registrar o Login antes (la cookie viaja sola).

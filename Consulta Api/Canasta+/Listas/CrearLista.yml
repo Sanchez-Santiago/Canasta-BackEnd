@@ -1,0 +1,32 @@
+info:
+  name: CrearLista
+  type: http
+  seq: 2
+http:
+  method: POST
+  url: "{{baseUrl}}/grupos/:idGrupo/listas"
+  params:
+    - name: idGrupo
+      value: "{{idGrupo}}"
+      type: path
+      description: ID del grupo donde se crea la lista
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Super del finde",
+        "descripcion": "Lista semanal"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # POST `/grupos/:idGrupo/listas` (protegida)
+  Crea una lista en estado `activa` dentro del grupo.
+  Cualquier miembro del grupo puede crearla. Queda como `id_usuario_creador`.

@@ -1,0 +1,33 @@
+info:
+  name: ActualizarProducto
+  type: http
+  seq: 4
+http:
+  method: PUT
+  url: "{{baseUrl}}/productos-lista/:idProductoLista"
+  params:
+    - name: idProductoLista
+      value: "{{idProductoLista}}"
+      type: path
+      description: ID del producto (variable idProductoLista)
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Leche (editada)",
+        "cantidad": 3,
+        "precio_estimado_unitario": 850,
+        "prioridad": "prioritario"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # PUT `/productos-lista/:idProductoLista` (protegida)
+  Edita un producto. CUALQUIER miembro del grupo puede modificarlo.

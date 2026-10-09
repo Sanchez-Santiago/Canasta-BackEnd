@@ -1,0 +1,31 @@
+info:
+  name: CambiarEstadoProducto
+  type: http
+  seq: 5
+http:
+  method: PATCH
+  url: "{{baseUrl}}/productos-lista/:idProductoLista/estado"
+  params:
+    - name: idProductoLista
+      value: "{{idProductoLista}}"
+      type: path
+      description: ID del producto (variable idProductoLista)
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "estado": "comprado"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # PATCH `/productos-lista/:idProductoLista/estado` (protegida)
+  Cambia el estado: `pendiente` | `comprado` | `omitido`.
+  Cualquier miembro del grupo puede hacerlo.

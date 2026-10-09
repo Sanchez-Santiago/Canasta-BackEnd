@@ -1,0 +1,38 @@
+info:
+  name: CrearProducto
+  type: http
+  seq: 2
+http:
+  method: POST
+  url: "{{baseUrl}}/listas/:idLista/productos"
+  params:
+    - name: idLista
+      value: "{{idLista}}"
+      type: path
+      description: ID de la lista (variable idLista)
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Leche",
+        "descripcion": "Entera 1L",
+        "prioridad": "esencial",
+        "cantidad": 2,
+        "precio_estimado_unitario": 800,
+        "codigo_producto": "779000100",
+        "estado": "pendiente"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # POST `/listas/:idLista/productos` (protegida)
+  Agrega un producto a la lista. Cualquier miembro del grupo puede crearlo.
+  `nombre` y `cantidad` (>0) obligatorios. Precio en centavos (entero >= 0).
+  Prioridad: `prioritario` | `esencial` | `secundario` (default secundario).

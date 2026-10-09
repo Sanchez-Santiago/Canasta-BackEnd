@@ -1,0 +1,17 @@
+info:
+  name: Raiz
+  type: http
+  seq: 1
+http:
+  method: GET
+  url: "{{baseUrl}}/"
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # Raiz `/` (publica)
+  Devuelve una pagina HTML con la descripcion del sistema y todas las rutas habilitadas.
+  No requiere autenticacion. Ideal para verificar que el backend esta levantado.

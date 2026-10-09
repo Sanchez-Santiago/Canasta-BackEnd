@@ -1,0 +1,27 @@
+info:
+  name: Login
+  type: http
+  seq: 2
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/login"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "email": "test@canasta.local",
+        "contrasena": "123456"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # POST `/auth/login` (publica)
+  Valida credenciales y setea cookie httpOnly `auth_token` con el JWT.
+  Bruno guarda la cookie automaticamente para los siguientes requests.
