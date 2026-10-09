@@ -4,6 +4,8 @@ import { authMiddleware } from "./shared/middlewares/auth";
 import { errorMiddleware } from "./shared/middlewares/error";
 import authRoutes from "./modules/user/user.router";
 import grupoRoutes from "./modules/grupo/grupo.router";
+import listaRoutes from "./modules/lista/lista.router";
+import productoListaRoutes from "./modules/productoLista/productoLista.router";
 import { getDb } from "./config/database";
 import { env } from "./config/env";
 
@@ -17,6 +19,8 @@ app.use(authMiddleware);
 
 app.use("/auth", authRoutes);
 app.use("/grupos", grupoRoutes);
+app.use("/", listaRoutes);
+app.use("/", productoListaRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ ok: false, error: "Ruta no encontrada" });
