@@ -1,7 +1,9 @@
-import { run, getOne, getAll } from "../../shared/db.helpers";
+// Tabla lista: CRUD + permisos por JOIN con usuario_grupo.
+import { run, getOne, getAll, filasAfectadas } from "../../shared/db.helpers";
 import type { ListaDB } from "./lista.scheme";
 import { ahoraIso } from "../../shared/utils/dates";
 
+/** Crea en estado activa con el usuario como creador. */
 export async function crearLista(
   idGrupo: number,
   idUsuarioCreador: number,
@@ -31,6 +33,7 @@ export async function crearLista(
   return obtenerListaPorId(Number(id));
 }
 
+/** Por id, sin chequear pertenencia. */
 export async function obtenerListaPorId(idLista: number): Promise<ListaDB | undefined> {
   const sql = `
     SELECT id_lista, id_grupo, id_usuario_creador, id_usuario_administrador,
@@ -42,6 +45,7 @@ export async function obtenerListaPorId(idLista: number): Promise<ListaDB | unde
   return getOne<ListaDB>(sql, { idLista });
 }
 
+/** Listas del grupo (actualizadas primero). */
 export async function obtenerListasPorGrupo(idGrupo: number): Promise<ListaDB[]> {
   const sql = `
     SELECT id_lista, id_grupo, id_usuario_creador, id_usuario_administrador,
@@ -53,6 +57,7 @@ export async function obtenerListasPorGrupo(idGrupo: number): Promise<ListaDB[]>
   return getAll<ListaDB>(sql, { idGrupo });
 }
 
+/** UPDATE parcial y refresca fecha_actualizacion. */
 export async function actualizarLista(
   idLista: number,
   datos: { nombre?: string; descripcion?: string; estado?: string }
@@ -78,12 +83,14 @@ export async function actualizarLista(
   return obtenerListaPorId(idLista);
 }
 
+/** DELETE (productos caen por CASCADE). */
 export async function eliminarLista(idLista: number): Promise<boolean> {
   const sql = `DELETE FROM lista WHERE id_lista = @idLista`;
   const rs = await run(sql, { idLista });
-  return (rs.changes ?? 0) > 0;
+  return filasAfectadas(rs) > 0;
 }
 
+/** Existe + pertenencia + rol: lo que usan todos los permisos. */
 export async function obtenerPermisosSobreLista(
   idUsuario: number,
   idLista: number

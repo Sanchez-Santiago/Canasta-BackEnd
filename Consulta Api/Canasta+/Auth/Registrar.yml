@@ -2,9 +2,10 @@ info:
   name: Registrar
   type: http
   seq: 1
+
 http:
   method: POST
-  url: "{{baseUrl}}/auth/registrar"
+  url: http://localhost:3000/auth/registrar
   headers:
     - name: Content-Type
       value: application/json
@@ -17,11 +18,14 @@ http:
         "contrasena": "123456"
       }
   auth: inherit
+
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true
+
 docs: |-
   # POST `/auth/registrar` (publica)
   Crea un usuario (hash bcrypt de `contrasena`) y crea automaticamente su grupo personal.

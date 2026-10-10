@@ -1,5 +1,8 @@
+// Total estimado = SUM(cantidad x precio unitario).
+// En centavos y pesos; ignora items sin precio.
 import type { ProductoListaDB } from "../productoLista/productoLista.scheme";
 
+// Resultado del calculo.
 export interface TotalEstimado {
   total_estimado_centavos: number;
   total_estimado_pesos: number;
@@ -7,6 +10,7 @@ export interface TotalEstimado {
   cantidad_items_total: number;
 }
 
+/** Suma round(precio x cantidad) de items con precio. */
 export function calcularTotalEstimado(items: ProductoListaDB[]): TotalEstimado {
   let totalCentavos = 0;
   let conPrecio = 0;

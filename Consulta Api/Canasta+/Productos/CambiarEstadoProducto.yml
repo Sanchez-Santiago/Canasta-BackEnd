@@ -2,14 +2,10 @@ info:
   name: CambiarEstadoProducto
   type: http
   seq: 5
+
 http:
   method: PATCH
-  url: "{{baseUrl}}/productos-lista/:idProductoLista/estado"
-  params:
-    - name: idProductoLista
-      value: "{{idProductoLista}}"
-      type: path
-      description: ID del producto (variable idProductoLista)
+  url: http://localhost:3000/productos-lista/3/estado
   headers:
     - name: Content-Type
       value: application/json
@@ -20,11 +16,14 @@ http:
         "estado": "comprado"
       }
   auth: inherit
+
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true
+
 docs: |-
   # PATCH `/productos-lista/:idProductoLista/estado` (protegida)
   Cambia el estado: `pendiente` | `comprado` | `omitido`.

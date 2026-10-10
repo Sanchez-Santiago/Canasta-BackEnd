@@ -1,3 +1,5 @@
+// Entrada: arma Express, monta routers y arranca.
+// GET / es publica y sirve la home HTML con la documentacion.
 import express from "express";
 import cookieParser from "cookie-parser";
 import { authMiddleware } from "./shared/middlewares/auth";
@@ -6,6 +8,10 @@ import authRoutes from "./modules/user/user.router";
 import grupoRoutes from "./modules/grupo/grupo.router";
 import listaRoutes from "./modules/lista/lista.router";
 import productoListaRoutes from "./modules/productoLista/productoLista.router";
+import movimientoRoutes from "./modules/movimiento/movimiento.router";
+import ofertaRoutes from "./modules/oferta/oferta.router";
+import invitacionRoutes from "./modules/invitacion/invitacion.router";
+import notificacionRoutes from "./modules/notificacion/notificacion.router";
 import { renderHomePage } from "./shared/home";
 import { getDb } from "./config/database";
 import { env } from "./config/env";
@@ -18,14 +24,20 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(authMiddleware);
 
+// Home publica con la tabla de endpoints.
 app.get("/", (_req, res) => {
   res.status(200).type("html").send(renderHomePage());
 });
 
+// Routers por dominio (protegidos salvo excepciones de auth).
 app.use("/auth", authRoutes);
 app.use("/grupos", grupoRoutes);
 app.use("/", listaRoutes);
 app.use("/", productoListaRoutes);
+app.use("/", movimientoRoutes);
+app.use("/", ofertaRoutes);
+app.use("/", invitacionRoutes);
+app.use("/", notificacionRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ ok: false, error: "Ruta no encontrada" });
@@ -37,6 +49,7 @@ const PORT = env.PORT || 3000;
 const HOST = "0.0.0.0";
 const API_URL = `http://localhost:${PORT}`;
 
+/** Verifica la DB y levanta el servidor; sale si no conecta. */
 async function iniciarServidor() {
   try {
     const db = getDb();

@@ -2,14 +2,10 @@ info:
   name: ActualizarGrupal
   type: http
   seq: 5
+
 http:
   method: PUT
-  url: "{{baseUrl}}/grupos/:idGrupo"
-  params:
-    - name: idGrupo
-      value: "{{idGrupo}}"
-      type: path
-      description: ID del grupo (usa variable de entorno idGrupo)
+  url: http://localhost:3000/grupos/7
   headers:
     - name: Content-Type
       value: application/json
@@ -21,11 +17,14 @@ http:
         "descripcion": "Nueva descripcion"
       }
   auth: inherit
+
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true
+
 docs: |-
   # PUT `/grupos/:idGrupo` (protegida)
   Edita un grupo `grupal`. Solo `administrador` del grupo.

@@ -2,9 +2,10 @@ info:
   name: CrearGrupal
   type: http
   seq: 2
+
 http:
   method: POST
-  url: "{{baseUrl}}/grupos/grupal"
+  url: http://localhost:3000/grupos/grupal
   headers:
     - name: Content-Type
       value: application/json
@@ -17,11 +18,14 @@ http:
         "categoria": "hogar"
       }
   auth: inherit
+
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true
+
 docs: |-
   # POST `/grupos/grupal` (protegida)
   Crea un grupo `grupal`. El creador queda como `administrador`.

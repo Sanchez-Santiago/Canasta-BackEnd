@@ -1,3 +1,5 @@
+// JWT en cookie auth_token: protege todo.
+// Publicas: GET /, POST /auth/registrar|register|login.
 import type { Request, Response, NextFunction } from "express";
 import { AUTH_COOKIE_NAME } from "../utils/cookies";
 import { verificarJwt } from "../utils/jwt";
@@ -10,6 +12,7 @@ declare global {
   }
 }
 
+/** Rutas que no piden sesion. */
 function esRutaPublicaAuth(req: Request): boolean {
   const path = req.path.replace(/\/+$/, "") || "/";
 
@@ -28,6 +31,7 @@ function esRutaPublicaAuth(req: Request): boolean {
   return false;
 }
 
+/** Verifica la cookie y setea req.user; 401 si falta o es invalida. */
 export function authMiddleware(
   req: Request,
   res: Response,

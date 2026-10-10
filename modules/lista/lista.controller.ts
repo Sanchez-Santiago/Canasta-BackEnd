@@ -1,3 +1,4 @@
+// HTTP de listas: params a numero y mapeo de ListaError a status.
 import type { Request, Response } from "express";
 import {
   crearListaService,
@@ -12,6 +13,7 @@ import {
 import { asyncHandler } from "../../shared/middlewares/asyncHandler";
 import { creado, ok } from "../../shared/utils/http";
 
+/** POST /grupos/:idGrupo/listas -> 201. */
 export const crearLista = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idGrupo = Number(req.params.idGrupo);
@@ -24,6 +26,7 @@ export const crearLista = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+/** GET /grupos/:idGrupo/listas. */
 export const obtenerListasPorGrupo = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idGrupo = Number(req.params.idGrupo);
@@ -36,6 +39,7 @@ export const obtenerListasPorGrupo = asyncHandler(async (req: Request, res: Resp
   }
 });
 
+/** GET /listas/:idLista. */
 export const obtenerLista = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idLista = Number(req.params.idLista);
@@ -48,6 +52,7 @@ export const obtenerLista = asyncHandler(async (req: Request, res: Response) => 
   }
 });
 
+/** PUT /listas/:idLista. */
 export const actualizarLista = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idLista = Number(req.params.idLista);
@@ -60,6 +65,7 @@ export const actualizarLista = asyncHandler(async (req: Request, res: Response) 
   }
 });
 
+/** PATCH /listas/:idLista/estado. */
 export const cambiarEstadoLista = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idLista = Number(req.params.idLista);
@@ -72,6 +78,7 @@ export const cambiarEstadoLista = asyncHandler(async (req: Request, res: Respons
   }
 });
 
+/** DELETE /listas/:idLista. */
 export const eliminarLista = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idLista = Number(req.params.idLista);
@@ -84,6 +91,7 @@ export const eliminarLista = asyncHandler(async (req: Request, res: Response) =>
   }
 });
 
+/** GET /listas/:idLista/total-estimado. */
 export const obtenerTotalEstimado = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idLista = Number(req.params.idLista);

@@ -1,3 +1,5 @@
+// Fecha actual en TEXT ISO, el formato que guarda SQLite.
+/** Ahora como YYYY-MM-DD HH:MM:SS. */
 export function ahoraIso(): string {
   const d = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");

@@ -1,0 +1,42 @@
+info:
+  name: CrearOferta
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/productos-lista/4/ofertas
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre_comercio": "Super Ahorro",
+        "ubicacion": "Av. Colon 1200",
+        "localidad": "Cordoba",
+        "provincia": "Cordoba",
+        "latitud": -31.4167,
+        "longitud": -64.1833,
+        "fecha_inicio": "2026-10-01",
+        "fecha_fin": "2026-12-31",
+        "porcentaje_descuento": 20,
+        "precio_original": 800,
+        "precio_oferta": 640,
+        "descripcion": "20% de descuento en lacteos"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  # POST `/productos-lista/:idProductoLista/ofertas` (protegida)
+  Asocia una oferta o descuento a un producto. Cualquier miembro del grupo.
+  Obligatorios: `nombre_comercio`, `fecha_inicio`, `fecha_fin` (fin posterior a inicio).
+  Opcionales: ubicacion, localidad, provincia, latitud, longitud, descuento 0-100, precios en centavos, descripcion.

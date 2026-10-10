@@ -1,0 +1,26 @@
+info:
+  name: Responder
+  type: http
+  seq: 4
+http:
+  method: PATCH
+  url: http://localhost:3000/invitaciones/1/responder
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "estado": "aceptada"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # PATCH `/invitaciones/:idInvitacion/responder` (protegida)
+  Solo el destinatario. `aceptada` lo agrega como miembro; `rechazada` la cierra.
+  Responder dos veces da 409.

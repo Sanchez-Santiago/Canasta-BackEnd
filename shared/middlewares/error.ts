@@ -1,6 +1,8 @@
+// Traduce errores a JSON { ok:false, error }. Solo loguea 5xx.
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 
+/** ZodError -> 400 con detalles; resto segun status. */
 export function errorMiddleware(
   err: unknown,
   req: Request,

@@ -1,0 +1,26 @@
+info:
+  name: CrearInvitacion
+  type: http
+  seq: 2
+http:
+  method: POST
+  url: http://localhost:3000/grupos/2/invitaciones
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "email_destino": "santiago@test.com"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # POST `/grupos/:idGrupo/invitaciones` (protegida)
+  Invita a un usuario por email. Solo admin. No vale para el grupo personal (403).
+  Errores: email inexistente 404, ya miembro o pendiente duplicado 409.

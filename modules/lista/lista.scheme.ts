@@ -1,7 +1,10 @@
+// Zod de listas y del total estimado.
 import { z } from "zod";
 
+// Estados posibles de una lista.
 export const estadoListaSchema = z.enum(["activa", "completada", "archivada"]);
 
+/** Body de POST /grupos/:idGrupo/listas. */
 export const crearListaBodySchema = z.object({
   nombre: z
     .string({ required_error: "El nombre de la lista es obligatorio" })
@@ -15,14 +18,17 @@ export const crearListaBodySchema = z.object({
     .optional(),
 });
 
+// Edicion parcial + cambio de estado.
 export const actualizarListaBodySchema = crearListaBodySchema.partial().extend({
   estado: estadoListaSchema.optional(),
 });
 
+/** Body de PATCH .../estado. */
 export const cambiarEstadoListaBodySchema = z.object({
   estado: estadoListaSchema,
 });
 
+/** Lista expuesta en la API. */
 export const listaRespuestaSchema = z.object({
   id_lista: z.number().int().positive(),
   id_grupo: z.number().int().positive(),
@@ -35,6 +41,7 @@ export const listaRespuestaSchema = z.object({
   fecha_actualizacion: z.string(),
 });
 
+// Param :idLista como entero positivo.
 export const idListaParamSchema = z.object({
   idLista: z
     .string()
@@ -42,6 +49,7 @@ export const idListaParamSchema = z.object({
     .pipe(z.number().int().positive()),
 });
 
+// Param :idGrupo para rutas anidadas.
 export const idGrupoParamSchemaListas = z.object({
   idGrupo: z
     .string()
@@ -49,6 +57,7 @@ export const idGrupoParamSchemaListas = z.object({
     .pipe(z.number().int().positive()),
 });
 
+/** Total en centavos y pesos + conteos. */
 export const totalEstimadoRespuestaSchema = z.object({
   total_estimado_centavos: z.number().int().min(0),
   total_estimado_pesos: z.number().min(0),
@@ -59,6 +68,7 @@ export const totalEstimadoRespuestaSchema = z.object({
 export type CrearListaBody = z.infer<typeof crearListaBodySchema>;
 export type ActualizarListaBody = z.infer<typeof actualizarListaBodySchema>;
 export type CambiarEstadoListaBody = z.infer<typeof cambiarEstadoListaBodySchema>;
+/** Fila de lista. */
 export type ListaDB = {
   id_lista: number;
   id_grupo: number;

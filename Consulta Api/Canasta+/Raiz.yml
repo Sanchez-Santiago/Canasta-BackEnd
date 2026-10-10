@@ -4,7 +4,7 @@ info:
   seq: 1
 http:
   method: GET
-  url: "{{baseUrl}}/"
+  url: "http://localhost:3000/"
   auth: inherit
 settings:
   encodeUrl: true

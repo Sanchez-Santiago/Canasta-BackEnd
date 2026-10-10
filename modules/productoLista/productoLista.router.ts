@@ -1,3 +1,4 @@
+// Rutas de items (todas protegidas).
 import { Router } from "express";
 import { validate } from "../../shared/middlewares/validate";
 import {
@@ -16,37 +17,44 @@ import {
   eliminarProducto,
 } from "./productoLista.controller";
 
+// Router del dominio (montado en index.ts).
 const router = Router();
 
 router.get(
   "/listas/:idLista/productos",
   validate({ params: idListaParamSchemaItems }),
+// Listar de la lista.
   obtenerProductosPorLista
 );
 router.post(
   "/listas/:idLista/productos",
   validate({ params: idListaParamSchemaItems, body: crearProductoListaBodySchema }),
+// Crear en la lista.
   crearProducto
 );
 
 router.get(
   "/productos-lista/:idProductoLista",
   validate({ params: idProductoListaParamSchema }),
+// Detalle.
   obtenerProducto
 );
 router.put(
   "/productos-lista/:idProductoLista",
   validate({ params: idProductoListaParamSchema, body: actualizarProductoListaBodySchema }),
+// Editar.
   actualizarProducto
 );
 router.patch(
   "/productos-lista/:idProductoLista/estado",
   validate({ params: idProductoListaParamSchema, body: cambiarEstadoItemBodySchema }),
+// Cambiar estado.
   cambiarEstadoProducto
 );
 router.delete(
   "/productos-lista/:idProductoLista",
   validate({ params: idProductoListaParamSchema }),
+// Eliminar.
   eliminarProducto
 );
 

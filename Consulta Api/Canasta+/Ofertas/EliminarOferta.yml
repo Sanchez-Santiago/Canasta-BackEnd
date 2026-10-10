@@ -1,0 +1,16 @@
+info:
+  name: EliminarOferta
+  type: http
+  seq: 6
+http:
+  method: DELETE
+  url: http://localhost:3000/ofertas/1
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # DELETE `/ofertas/:idOferta` (protegida)
+  Elimina una oferta. SOLO el administrador del grupo (la tabla no registra creador).

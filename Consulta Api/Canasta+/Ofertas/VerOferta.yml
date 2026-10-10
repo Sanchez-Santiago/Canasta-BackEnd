@@ -1,0 +1,16 @@
+info:
+  name: VerOferta
+  type: http
+  seq: 4
+http:
+  method: GET
+  url: http://localhost:3000/ofertas/1
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # GET `/ofertas/:idOferta` (protegida)
+  Detalle de una oferta. Solo si perteneces a su grupo. Cambiar el 1 por el ID real.

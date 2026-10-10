@@ -1,8 +1,12 @@
+// Zod de items: prioridad, estado y precio en centavos.
 import { z } from "zod";
 
+// Prioridades validas del item.
 export const prioridadItemSchema = z.enum(["prioritario", "esencial", "secundario"]);
+// Estados validos del item.
 export const estadoItemSchema = z.enum(["pendiente", "comprado", "omitido"]);
 
+/** Body de POST /listas/:idLista/productos. */
 export const crearProductoListaBodySchema = z.object({
   nombre: z
     .string({ required_error: "El nombre del producto es obligatorio" })
@@ -34,12 +38,15 @@ export const crearProductoListaBodySchema = z.object({
   estado: estadoItemSchema.optional(),
 });
 
+// Edicion parcial.
 export const actualizarProductoListaBodySchema = crearProductoListaBodySchema.partial();
 
+/** Body de PATCH .../estado. */
 export const cambiarEstadoItemBodySchema = z.object({
   estado: estadoItemSchema,
 });
 
+/** Item expuesto en la API. */
 export const productoListaRespuestaSchema = z.object({
   id_producto_lista: z.number().int().positive(),
   id_lista: z.number().int().positive(),
@@ -54,6 +61,7 @@ export const productoListaRespuestaSchema = z.object({
   fecha_creacion: z.string(),
 });
 
+// Param :idProductoLista como entero positivo.
 export const idProductoListaParamSchema = z.object({
   idProductoLista: z
     .string()
@@ -61,6 +69,7 @@ export const idProductoListaParamSchema = z.object({
     .pipe(z.number().int().positive()),
 });
 
+// Param :idLista para rutas anidadas.
 export const idListaParamSchemaItems = z.object({
   idLista: z
     .string()
@@ -71,6 +80,7 @@ export const idListaParamSchemaItems = z.object({
 export type CrearProductoListaBody = z.infer<typeof crearProductoListaBodySchema>;
 export type ActualizarProductoListaBody = z.infer<typeof actualizarProductoListaBodySchema>;
 export type CambiarEstadoItemBody = z.infer<typeof cambiarEstadoItemBodySchema>;
+/** Fila de producto_lista. */
 export type ProductoListaDB = {
   id_producto_lista: number;
   id_lista: number;

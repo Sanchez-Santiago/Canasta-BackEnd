@@ -1,3 +1,4 @@
+// Reglas de grupo: personal intocable, cambios solo admin.
 import {
   crearGrupoGrupal,
   obtenerGrupoConRol,
@@ -14,6 +15,7 @@ import type {
   MiembroGrupoRespuesta,
 } from "./grupo.scheme";
 
+/** Error con status para responder desde el controller. */
 export class GrupoError extends Error {
   status: number;
   constructor(mensaje: string, status = 400) {
@@ -23,6 +25,7 @@ export class GrupoError extends Error {
   }
 }
 
+// Recorta la fila a lo publico.
 function aGrupoRespuesta(g: any): GrupoRespuesta {
   return {
     id_grupo: g.id_grupo,
@@ -34,6 +37,7 @@ function aGrupoRespuesta(g: any): GrupoRespuesta {
   };
 }
 
+// Idem + rol y fecha de ingreso.
 function aGrupoConRolRespuesta(g: any): GrupoConRolRespuesta {
   return {
     id_grupo: g.id_grupo,
@@ -47,6 +51,7 @@ function aGrupoConRolRespuesta(g: any): GrupoConRolRespuesta {
   };
 }
 
+// Idem para miembros.
 function aMiembroGrupoRespuesta(m: any): MiembroGrupoRespuesta {
   return {
     id_usuario: m.id_usuario,
@@ -57,6 +62,7 @@ function aMiembroGrupoRespuesta(m: any): MiembroGrupoRespuesta {
   };
 }
 
+/** Crea grupal (el model da de alta al admin). */
 export async function crearGrupoGrupalService(
   idUsuario: number,
   datos: CrearGrupoGrupalBody
@@ -70,6 +76,7 @@ export async function crearGrupoGrupalService(
   return { grupo: aGrupoRespuesta(creado) };
 }
 
+/** Mis grupos con rol. */
 export async function obtenerMisGruposService(
   idUsuario: number
 ): Promise<{ grupos: GrupoConRolRespuesta[] }> {
@@ -77,6 +84,7 @@ export async function obtenerMisGruposService(
   return { grupos: grupos.map(aGrupoConRolRespuesta) };
 }
 
+/** Detalle solo si pertenezco; 404 si no. */
 export async function obtenerGrupoPorIdService(
   idUsuario: number,
   idGrupo: number
@@ -86,6 +94,7 @@ export async function obtenerGrupoPorIdService(
   return { grupo: aGrupoConRolRespuesta(grupo) };
 }
 
+/** Miembros solo si pertenezco. */
 export async function obtenerMiembrosDeGrupoService(
   idUsuario: number,
   idGrupo: number
@@ -98,6 +107,7 @@ export async function obtenerMiembrosDeGrupoService(
   return { miembros: miembros.map(aMiembroGrupoRespuesta) };
 }
 
+/** Edita grupal: 403 si es personal o no soy admin. */
 export async function actualizarGrupoGrupalService(
   idUsuario: number,
   idGrupo: number,
@@ -116,6 +126,7 @@ export async function actualizarGrupoGrupalService(
   return { grupo: aGrupoRespuesta(actualizado) };
 }
 
+/** Elimina grupal: 403 si es personal o no soy admin. */
 export async function eliminarGrupoGrupalService(
   idUsuario: number,
   idGrupo: number

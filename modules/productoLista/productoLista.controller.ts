@@ -1,3 +1,4 @@
+// HTTP de items: params a numero y mapeo del error a status.
 import type { Request, Response } from "express";
 import {
   crearProductoListaService,
@@ -11,6 +12,7 @@ import {
 import { asyncHandler } from "../../shared/middlewares/asyncHandler";
 import { creado, ok } from "../../shared/utils/http";
 
+/** POST /listas/:idLista/productos -> 201. */
 export const crearProducto = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idLista = Number(req.params.idLista);
@@ -23,6 +25,7 @@ export const crearProducto = asyncHandler(async (req: Request, res: Response) =>
   }
 });
 
+/** GET /listas/:idLista/productos. */
 export const obtenerProductosPorLista = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idLista = Number(req.params.idLista);
@@ -35,6 +38,7 @@ export const obtenerProductosPorLista = asyncHandler(async (req: Request, res: R
   }
 });
 
+/** GET /productos-lista/:idProductoLista. */
 export const obtenerProducto = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idProductoLista = Number(req.params.idProductoLista);
@@ -47,6 +51,7 @@ export const obtenerProducto = asyncHandler(async (req: Request, res: Response) 
   }
 });
 
+/** PUT /productos-lista/:idProductoLista. */
 export const actualizarProducto = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idProductoLista = Number(req.params.idProductoLista);
@@ -59,6 +64,7 @@ export const actualizarProducto = asyncHandler(async (req: Request, res: Respons
   }
 });
 
+/** PATCH /productos-lista/:idProductoLista/estado. */
 export const cambiarEstadoProducto = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idProductoLista = Number(req.params.idProductoLista);
@@ -71,6 +77,7 @@ export const cambiarEstadoProducto = asyncHandler(async (req: Request, res: Resp
   }
 });
 
+/** DELETE /productos-lista/:idProductoLista. */
 export const eliminarProducto = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idProductoLista = Number(req.params.idProductoLista);

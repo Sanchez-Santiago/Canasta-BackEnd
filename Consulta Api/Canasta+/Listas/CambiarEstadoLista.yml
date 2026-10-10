@@ -2,14 +2,10 @@ info:
   name: CambiarEstadoLista
   type: http
   seq: 5
+
 http:
   method: PATCH
-  url: "{{baseUrl}}/listas/:idLista/estado"
-  params:
-    - name: idLista
-      value: "{{idLista}}"
-      type: path
-      description: ID de la lista (variable idLista)
+  url: http://localhost:3000/listas/3/estado
   headers:
     - name: Content-Type
       value: application/json
@@ -20,11 +16,14 @@ http:
         "estado": "completada"
       }
   auth: inherit
+
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true
+
 docs: |-
   # PATCH `/listas/:idLista/estado` (protegida)
   Cambia el estado: `activa` | `completada` | `archivada`.

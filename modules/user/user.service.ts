@@ -1,3 +1,4 @@
+// Negocio de auth: altas, login y JWT (sin HTTP ni SQL).
 import type {
   RegistrarUsuarioBody,
   LoginBody,
@@ -13,6 +14,7 @@ import { hashContrasena, compararContrasena } from "../../shared/utils/password"
 import { firmarJwt } from "../../shared/utils/jwt";
 import { crearGrupoPersonal } from "../grupo/grupo.model";
 
+/** Error con status para responder desde el controller. */
 export class AuthError extends Error {
   status: number;
 
@@ -23,6 +25,7 @@ export class AuthError extends Error {
   }
 }
 
+// Quita el hash antes de responder.
 function aUsuarioRespuesta(usuario: UsuarioDB): UsuarioRespuesta {
   return {
     id_usuario: usuario.id_usuario,
@@ -36,6 +39,7 @@ function aUsuarioRespuesta(usuario: UsuarioDB): UsuarioRespuesta {
   };
 }
 
+/** Crea usuario + grupo personal y firma JWT. 409 si el email existe. */
 export async function registrarUsuario(
   data: RegistrarUsuarioBody
 ): Promise<{ usuario: UsuarioRespuesta; token: string }> {
@@ -69,6 +73,7 @@ export async function registrarUsuario(
   return { usuario, token };
 }
 
+/** Compara hash y firma JWT. 401 si no coincide. */
 export async function loginUsuario(
   data: LoginBody
 ): Promise<{ usuario: UsuarioRespuesta; token: string }> {
@@ -90,6 +95,7 @@ export async function loginUsuario(
   return { usuario, token };
 }
 
+/** Usuario de la sesion; null si fue borrado. */
 export async function obtenerUsuarioAutenticado(
   idUsuario: number
 ): Promise<UsuarioRespuesta | null> {

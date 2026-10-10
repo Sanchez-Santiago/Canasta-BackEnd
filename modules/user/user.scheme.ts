@@ -1,5 +1,7 @@
+// Zod de auth + forma publica del usuario (sin contrasena).
 import { z } from "zod";
 
+/** Body de POST /auth/registrar. */
 export const registrarUsuarioBodySchema = z.object({
   nombre: z
     .string({ required_error: "El nombre es obligatorio" })
@@ -38,6 +40,7 @@ export const registrarUsuarioBodySchema = z.object({
     .optional(),
 });
 
+/** Body de POST /auth/login. */
 export const loginBodySchema = z.object({
   email: z
     .string({ required_error: "El email es obligatorio" })
@@ -49,6 +52,7 @@ export const loginBodySchema = z.object({
     .min(6, "La contraseña debe tener al menos 6 caracteres"),
 });
 
+/** Usuario expuesto en la API (nunca lleva el hash). */
 export const usuarioRespuestaSchema = z.object({
   id_usuario: z.number().int().positive(),
   nombre: z.string(),
@@ -72,6 +76,7 @@ export type RegistrarUsuarioBody = z.infer<typeof registrarUsuarioBodySchema>;
 export type LoginBody = z.infer<typeof loginBodySchema>;
 export type UsuarioRespuesta = z.infer<typeof usuarioRespuestaSchema>;
 
+/** Fila de usuario (incluye hash: solo uso interno). */
 export interface UsuarioDB {
   id_usuario: number;
   nombre: string;

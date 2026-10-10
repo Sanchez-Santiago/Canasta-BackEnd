@@ -1,8 +1,11 @@
+// SQLite via Turso (libSQL): un unico cliente compartido.
+// Activa FK; al arrancar se valida con SELECT 1.
 import { createClient, type Client } from "@libsql/client";
 import { env } from "./env";
 
 let client: Client | null = null;
 
+/** Devuelve el cliente (lo crea una sola vez). */
 export function getDb(): Client {
   if (client) return client;
 
@@ -18,6 +21,7 @@ export function getDb(): Client {
   return client;
 }
 
+/** Cierra el cliente (apagado o tests). */
 export function closeDb(): void {
   if (client) {
     client.close();

@@ -1,0 +1,35 @@
+info:
+  name: CrearMovimiento
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/grupos/6/movimientos
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Sueldo",
+        "monto": 150000,
+        "descripcion": "Sueldo del mes",
+        "tipo": "ingreso",
+        "fecha_movimiento": "2026-10-09"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  # POST `/grupos/:idGrupo/movimientos` (protegida)
+  Registra un `ingreso` o `gasto`. Cualquier miembro del grupo puede crearlo.
+  `nombre`, `monto` (centavos >= 0), `tipo` y `fecha_movimiento` (YYYY-MM-DD o YYYY-MM-DD HH:MM:SS) obligatorios.
+  Opcionales: `descripcion`, `foto_url`.

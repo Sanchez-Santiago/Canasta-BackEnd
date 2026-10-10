@@ -2,9 +2,10 @@ info:
   name: Login
   type: http
   seq: 2
+
 http:
   method: POST
-  url: "{{baseUrl}}/auth/login"
+  url: http://localhost:3000/auth/login
   headers:
     - name: Content-Type
       value: application/json
@@ -16,11 +17,14 @@ http:
         "contrasena": "123456"
       }
   auth: inherit
+
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true
+
 docs: |-
   # POST `/auth/login` (publica)
   Valida credenciales y setea cookie httpOnly `auth_token` con el JWT.

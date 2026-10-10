@@ -1,3 +1,4 @@
+// HTTP de grupos: auth via req.user y mapeo de GrupoError a status.
 import type { Request, Response } from "express";
 import {
   crearGrupoGrupalService,
@@ -11,6 +12,7 @@ import {
 import { asyncHandler } from "../../shared/middlewares/asyncHandler";
 import { creado, ok } from "../../shared/utils/http";
 
+/** POST /grupos/grupal -> 201. */
 export const crearGrupal = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   try {
@@ -22,12 +24,14 @@ export const crearGrupal = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+/** GET /grupos. */
 export const obtenerMisGrupos = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const r = await obtenerMisGruposService(req.user.idUsuario);
   return ok(res, r);
 });
 
+/** GET /grupos/:idGrupo. */
 export const obtenerGrupo = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idGrupo = Number(req.params.idGrupo);
@@ -40,6 +44,7 @@ export const obtenerGrupo = asyncHandler(async (req: Request, res: Response) => 
   }
 });
 
+/** GET /grupos/:idGrupo/miembros. */
 export const obtenerMiembros = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idGrupo = Number(req.params.idGrupo);
@@ -52,6 +57,7 @@ export const obtenerMiembros = asyncHandler(async (req: Request, res: Response) 
   }
 });
 
+/** PUT /grupos/:idGrupo. */
 export const actualizarGrupal = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idGrupo = Number(req.params.idGrupo);
@@ -64,6 +70,7 @@ export const actualizarGrupal = asyncHandler(async (req: Request, res: Response)
   }
 });
 
+/** DELETE /grupos/:idGrupo. */
 export const eliminarGrupal = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idGrupo = Number(req.params.idGrupo);

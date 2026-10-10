@@ -20,3 +20,18 @@ variables:
     enabled: true
     secret: false
     description: ID de producto de lista para probar endpoints con :idProductoLista
+  - name: idMovimiento
+    value: "1"
+    enabled: true
+    secret: false
+    description: ID de movimiento para probar endpoints con :idMovimiento
+  - name: idOferta
+    value: "1"
+    enabled: true
+    secret: false
+    description: ID de oferta para probar endpoints con :idOferta
+  - name: idInvitacion
+    value: "1"
+    enabled: true
+    secret: false
+    description: ID de invitacion para probar endpoints con :idInvitacion

@@ -1,6 +1,8 @@
-import { run, getOne, getAll } from "../../shared/db.helpers";
+// Tabla producto_lista: CRUD + contexto para permisos.
+import { run, getOne, getAll, filasAfectadas } from "../../shared/db.helpers";
 import type { ProductoListaDB } from "./productoLista.scheme";
 
+/** Alta con defaults (secundario/pendiente). */
 export async function crearProductoLista(
   idLista: number,
   idUsuarioCreador: number,
@@ -40,6 +42,7 @@ export async function crearProductoLista(
   return obtenerProductoListaPorId(Number(id));
 }
 
+/** Por id, sin chequear pertenencia. */
 export async function obtenerProductoListaPorId(
   idProductoLista: number
 ): Promise<ProductoListaDB | undefined> {
@@ -53,6 +56,7 @@ export async function obtenerProductoListaPorId(
   return getOne<ProductoListaDB>(sql, { idProductoLista });
 }
 
+/** Items ordenados por prioridad y fecha. */
 export async function obtenerProductosPorLista(idLista: number): Promise<ProductoListaDB[]> {
   const sql = `
     SELECT id_producto_lista, id_lista, id_usuario_creador, nombre, descripcion,
@@ -72,6 +76,7 @@ export async function obtenerProductosPorLista(idLista: number): Promise<Product
   return getAll<ProductoListaDB>(sql, { idLista });
 }
 
+/** UPDATE parcial. */
 export async function actualizarProductoLista(
   idProductoLista: number,
   datos: Partial<{
@@ -120,12 +125,14 @@ export async function actualizarProductoLista(
   return obtenerProductoListaPorId(idProductoLista);
 }
 
+/** DELETE (ofertas caen por CASCADE). */
 export async function eliminarProductoLista(idProductoLista: number): Promise<boolean> {
   const sql = `DELETE FROM producto_lista WHERE id_producto_lista = @idProductoLista`;
   const rs = await run(sql, { idProductoLista });
-  return (rs.changes ?? 0) > 0;
+  return filasAfectadas(rs) > 0;
 }
 
+/** Item + grupo y creador de su lista (permisos y ofertas). */
 export async function obtenerItemConContexto(idProductoLista: number): Promise<{
   item: ProductoListaDB | null;
   idLista: number | null;
@@ -166,6 +173,7 @@ export async function obtenerItemConContexto(idProductoLista: number): Promise<{
   };
 }
 
+/** Rol del usuario o null si no pertenece. */
 export async function obtenerRolEnGrupo(
   idUsuario: number,
   idGrupo: number

@@ -1,0 +1,31 @@
+info:
+  name: ActualizarMovimiento
+  type: http
+  seq: 5
+http:
+  method: PUT
+  url: "http://localhost:3000/movimientos/:idMovimiento"
+  params:
+    - name: idMovimiento
+      value: "{{idMovimiento}}"
+      type: path
+      description: ID del movimiento (variable idMovimiento)
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Sueldo (editado)",
+        "monto": 160000
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # PUT `/movimientos/:idMovimiento` (protegida)
+  Edita un movimiento. Solo creador o admin del grupo.

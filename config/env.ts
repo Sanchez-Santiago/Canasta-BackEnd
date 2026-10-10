@@ -1,6 +1,9 @@
+// Variables de entorno validadas con Zod.
+// Falla al arrancar si falta algo requerido.
 import "dotenv/config";
 import { z } from "zod";
 
+// Esquema de validacion (tipos y rangos).
 const envSchema = z.object({
   PORT: z
     .string()
@@ -36,4 +39,5 @@ if (!parsed.success) {
   throw new Error(`Error validando variables de entorno:\n${errors}`);
 }
 
+/** Variables ya validadas: importar desde aqui. */
 export const env = parsed.data;

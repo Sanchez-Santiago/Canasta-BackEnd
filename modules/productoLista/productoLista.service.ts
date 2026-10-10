@@ -1,3 +1,4 @@
+// Reglas de items: editar cualquiera; borrar creadores o admin.
 import {
   crearProductoLista,
   obtenerProductosPorLista,
@@ -14,6 +15,7 @@ import type {
   ProductoListaRespuesta,
 } from "./productoLista.scheme";
 
+/** Error con status para responder desde el controller. */
 export class ProductoListaError extends Error {
   status: number;
   constructor(mensaje: string, status = 400) {
@@ -23,6 +25,7 @@ export class ProductoListaError extends Error {
   }
 }
 
+// Recorta la fila a lo publico.
 function aItemRespuesta(i: any): ProductoListaRespuesta {
   return {
     id_producto_lista: i.id_producto_lista,
@@ -39,6 +42,7 @@ function aItemRespuesta(i: any): ProductoListaRespuesta {
   };
 }
 
+/** Borrar: admin, creador de la lista o del item. */
 function puedeEliminarItem(
   idUsuario: number,
   ctx: {
@@ -53,6 +57,7 @@ function puedeEliminarItem(
   return false;
 }
 
+/** Crea si la lista existe y pertenezco. */
 export async function crearProductoListaService(
   idUsuario: number,
   idLista: number,
@@ -66,6 +71,7 @@ export async function crearProductoListaService(
   return { producto: aItemRespuesta(creado) };
 }
 
+/** Items solo si pertenezco. */
 export async function obtenerProductosPorListaService(
   idUsuario: number,
   idLista: number
@@ -77,6 +83,7 @@ export async function obtenerProductosPorListaService(
   return { productos: items.map(aItemRespuesta) };
 }
 
+/** Detalle: 404/403 segun corresponda. */
 export async function obtenerProductoListaPorIdService(
   idUsuario: number,
   idProductoLista: number
@@ -88,6 +95,7 @@ export async function obtenerProductoListaPorIdService(
   return { producto: aItemRespuesta(ctx.item) };
 }
 
+/** Edita: cualquier miembro del grupo. */
 export async function actualizarProductoListaService(
   idUsuario: number,
   idProductoLista: number,
@@ -102,6 +110,7 @@ export async function actualizarProductoListaService(
   return { producto: aItemRespuesta(actualizado) };
 }
 
+/** Cambia estado: cualquier miembro. */
 export async function cambiarEstadoItemService(
   idUsuario: number,
   idProductoLista: number,
@@ -116,6 +125,7 @@ export async function cambiarEstadoItemService(
   return { producto: aItemRespuesta(actualizado) };
 }
 
+/** Elimina: 403 salvo admin/creadores. */
 export async function eliminarProductoListaService(
   idUsuario: number,
   idProductoLista: number

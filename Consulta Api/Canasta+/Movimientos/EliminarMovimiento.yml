@@ -1,0 +1,21 @@
+info:
+  name: EliminarMovimiento
+  type: http
+  seq: 6
+http:
+  method: DELETE
+  url: "http://localhost:3000/movimientos/:idMovimiento"
+  params:
+    - name: idMovimiento
+      value: "{{idMovimiento}}"
+      type: path
+      description: ID del movimiento (variable idMovimiento)
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # DELETE `/movimientos/:idMovimiento` (protegida)
+  Elimina un movimiento. Solo creador o admin del grupo.

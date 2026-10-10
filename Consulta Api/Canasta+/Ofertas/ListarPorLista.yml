@@ -1,0 +1,17 @@
+info:
+  name: ListarPorLista
+  type: http
+  seq: 3
+http:
+  method: GET
+  url: http://localhost:3000/listas/1/ofertas
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # GET `/listas/:idLista/ofertas` (protegida)
+  Todas las ofertas de los productos de una lista. Mismos filtros (?vigentes, ?localidad, ?provincia).
+  Util para comparar precios antes de comprar.

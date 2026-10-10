@@ -1,3 +1,4 @@
+// HTTP de auth: delega al service y maneja cookie + AuthError.
 import type { Request, Response } from "express";
 import {
   registrarUsuario,
@@ -9,6 +10,7 @@ import { setAuthCookie, clearAuthCookie } from "../../shared/utils/cookies";
 import { asyncHandler } from "../../shared/middlewares/asyncHandler";
 import { creado, ok } from "../../shared/utils/http";
 
+/** POST /auth/registrar -> 201 + cookie. */
 export const registrar = asyncHandler(async (req: Request, res: Response) => {
   const { body } = req;
 
@@ -24,6 +26,7 @@ export const registrar = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+/** POST /auth/login -> 200 + cookie. */
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { body } = req;
 
@@ -39,11 +42,13 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+/** POST /auth/logout: limpia la cookie. */
 export const logout = asyncHandler(async (_req: Request, res: Response) => {
   clearAuthCookie(res);
   return res.status(200).json({ ok: true, mensaje: "Sesión cerrada" });
 });
 
+/** GET /auth/yo: usuario de la cookie. */
 export const quienSoy = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ ok: false, error: "No autorizado" });

@@ -2,14 +2,10 @@ info:
   name: ActualizarProducto
   type: http
   seq: 4
+
 http:
   method: PUT
-  url: "{{baseUrl}}/productos-lista/:idProductoLista"
-  params:
-    - name: idProductoLista
-      value: "{{idProductoLista}}"
-      type: path
-      description: ID del producto (variable idProductoLista)
+  url: http://localhost:3000/productos-lista/3
   headers:
     - name: Content-Type
       value: application/json
@@ -23,11 +19,14 @@ http:
         "prioridad": "prioritario"
       }
   auth: inherit
+
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true
+
 docs: |-
   # PUT `/productos-lista/:idProductoLista` (protegida)
   Edita un producto. CUALQUIER miembro del grupo puede modificarlo.

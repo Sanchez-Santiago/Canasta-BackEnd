@@ -1,3 +1,4 @@
+// Reglas de listas: miembros crean/leen; editar/borrar creador o admin.
 import {
   crearLista,
   obtenerListaPorId,
@@ -17,6 +18,7 @@ import type {
   TotalEstimadoRespuesta,
 } from "./lista.scheme";
 
+/** Error con status para responder desde el controller. */
 export class ListaError extends Error {
   status: number;
   constructor(mensaje: string, status = 400) {
@@ -26,6 +28,7 @@ export class ListaError extends Error {
   }
 }
 
+// Recorta la fila a lo publico.
 function aListaRespuesta(l: any): ListaRespuesta {
   return {
     id_lista: l.id_lista,
@@ -40,6 +43,7 @@ function aListaRespuesta(l: any): ListaRespuesta {
   };
 }
 
+// Adapta el calculo a la respuesta.
 function aTotalRespuesta(t: TotalEstimado): TotalEstimadoRespuesta {
   return {
     total_estimado_centavos: t.total_estimado_centavos,
@@ -49,6 +53,7 @@ function aTotalRespuesta(t: TotalEstimado): TotalEstimadoRespuesta {
   };
 }
 
+/** Crea lista si pertenezco al grupo. */
 export async function crearListaService(
   idUsuario: number,
   idGrupo: number,
@@ -64,6 +69,7 @@ export async function crearListaService(
   return { lista: aListaRespuesta(creada) };
 }
 
+/** Listas solo si pertenezco. */
 export async function obtenerListasPorGrupoService(
   idUsuario: number,
   idGrupo: number
@@ -74,6 +80,7 @@ export async function obtenerListasPorGrupoService(
   return { listas: listas.map(aListaRespuesta) };
 }
 
+/** Detalle: 404 si no existe, 403 si no pertenezco. */
 export async function obtenerListaPorIdService(
   idUsuario: number,
   idLista: number
@@ -84,6 +91,7 @@ export async function obtenerListaPorIdService(
   return { lista: aListaRespuesta(p.lista!) };
 }
 
+/** Edita: 403 si no soy creador ni admin. */
 export async function actualizarListaService(
   idUsuario: number,
   idLista: number,
@@ -99,6 +107,7 @@ export async function actualizarListaService(
   return { lista: aListaRespuesta(actualizada) };
 }
 
+/** Cambia estado con el mismo permiso de edicion. */
 export async function cambiarEstadoListaService(
   idUsuario: number,
   idLista: number,
@@ -114,6 +123,7 @@ export async function cambiarEstadoListaService(
   return { lista: aListaRespuesta(actualizada) };
 }
 
+/** Elimina: 403 si no soy creador ni admin. */
 export async function eliminarListaService(
   idUsuario: number,
   idLista: number
@@ -128,6 +138,7 @@ export async function eliminarListaService(
   return { eliminado: true };
 }
 
+/** Calcula el total sobre los items actuales. */
 export async function obtenerTotalEstimadoService(
   idUsuario: number,
   idLista: number

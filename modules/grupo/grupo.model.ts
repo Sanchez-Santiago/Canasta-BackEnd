@@ -1,7 +1,9 @@
-import { run, getOne, getAll } from "../../shared/db.helpers";
+// Tablas grupo + usuario_grupo: altas, pertenencia y roles.
+import { run, getOne, getAll, filasAfectadas } from "../../shared/db.helpers";
 import type { GrupoDB, GrupoConRolDB, MiembroGrupoDB } from "./grupo.scheme";
 import { ahoraIso } from "../../shared/utils/dates";
 
+/** Grupo personal + alta del usuario como administrador. */
 export async function crearGrupoPersonal(
   idUsuario: number,
   nombreUsuario: string
@@ -31,6 +33,7 @@ export async function crearGrupoPersonal(
   return obtenerGrupoPorId(idGrupoNum);
 }
 
+/** Grupo grupal + alta del creador como administrador. */
 export async function crearGrupoGrupal(
   idUsuarioCreador: number,
   datos: { nombre: string; descripcion?: string; categoria?: string }
@@ -64,6 +67,7 @@ export async function crearGrupoGrupal(
   return obtenerGrupoPorId(idGrupoNum);
 }
 
+/** Por id, sin chequear pertenencia. */
 export async function obtenerGrupoPorId(idGrupo: number): Promise<GrupoDB | undefined> {
   const sql = `
     SELECT id_grupo, nombre, descripcion, categoria, tipo, fecha_creacion
@@ -74,6 +78,7 @@ export async function obtenerGrupoPorId(idGrupo: number): Promise<GrupoDB | unde
   return getOne<GrupoDB>(sql, { idGrupo });
 }
 
+/** Grupo + rol del usuario: base de todos los permisos. */
 export async function obtenerGrupoConRol(
   idUsuario: number,
   idGrupo: number
@@ -89,6 +94,7 @@ export async function obtenerGrupoConRol(
   return getOne<GrupoConRolDB>(sql, { idUsuario, idGrupo });
 }
 
+/** Grupos del usuario (personal primero). */
 export async function obtenerGruposDeUsuario(idUsuario: number): Promise<GrupoConRolDB[]> {
   const sql = `
     SELECT g.id_grupo, g.nombre, g.descripcion, g.categoria, g.tipo, g.fecha_creacion,
@@ -101,6 +107,7 @@ export async function obtenerGruposDeUsuario(idUsuario: number): Promise<GrupoCo
   return getAll<GrupoConRolDB>(sql, { idUsuario });
 }
 
+/** Miembros con rol: administradores primero. */
 export async function obtenerMiembrosDeGrupo(idGrupo: number): Promise<MiembroGrupoDB[]> {
   const sql = `
     SELECT u.id_usuario,
@@ -119,6 +126,7 @@ export async function obtenerMiembrosDeGrupo(idGrupo: number): Promise<MiembroGr
   return getAll<MiembroGrupoDB>(sql, { idGrupo });
 }
 
+// true si ya tiene su personal (invariante: exactamente 1).
 export async function existeGrupoPersonalDeUsuario(idUsuario: number): Promise<boolean> {
   const sql = `
     SELECT 1
@@ -131,6 +139,7 @@ export async function existeGrupoPersonalDeUsuario(idUsuario: number): Promise<b
   return !!row;
 }
 
+/** UPDATE parcial solo en grupales. */
 export async function actualizarGrupoGrupal(
   idGrupo: number,
   datos: { nombre?: string; descripcion?: string; categoria?: string }
@@ -157,8 +166,9 @@ export async function actualizarGrupoGrupal(
   return obtenerGrupoPorId(idGrupo);
 }
 
+/** DELETE solo en grupales; el personal se frena en el service. */
 export async function eliminarGrupoGrupal(idGrupo: number): Promise<boolean> {
   const sql = `DELETE FROM grupo WHERE id_grupo = @idGrupo AND tipo = 'grupal'`;
   const rs = await run(sql, { idGrupo });
-  return (rs.changes ?? 0) > 0;
+  return filasAfectadas(rs) > 0;
 }

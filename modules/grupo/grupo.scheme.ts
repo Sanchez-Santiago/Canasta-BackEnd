@@ -1,7 +1,9 @@
+// Zod de grupos, roles y miembros.
 import { z } from "zod";
 
 export const tipoGrupoSchema = z.enum(["personal", "grupal"]);
 
+/** Body de POST /grupos/grupal. */
 export const crearGrupoGrupalBodySchema = z.object({
   nombre: z
     .string({ required_error: "El nombre del grupo es obligatorio" })
@@ -20,8 +22,10 @@ export const crearGrupoGrupalBodySchema = z.object({
     .optional(),
 });
 
+// Edicion parcial (mismos campos opcionales).
 export const actualizarGrupoGrupalBodySchema = crearGrupoGrupalBodySchema.partial();
 
+/** Grupo expuesto en la API. */
 export const grupoRespuestaSchema = z.object({
   id_grupo: z.number().int().positive(),
   nombre: z.string(),
@@ -36,6 +40,7 @@ export const grupoConRolSchema = grupoRespuestaSchema.extend({
   fecha_ingreso: z.string(),
 });
 
+/** Miembro con rol visible. */
 export const miembroGrupoSchema = z.object({
   id_usuario: z.number().int().positive(),
   nombre: z.string(),
@@ -44,6 +49,7 @@ export const miembroGrupoSchema = z.object({
   fecha_ingreso: z.string(),
 });
 
+// Param :idGrupo como entero positivo.
 export const idGrupoParamSchema = z.object({
   idGrupo: z
     .string()
@@ -53,6 +59,7 @@ export const idGrupoParamSchema = z.object({
 
 export type CrearGrupoGrupalBody = z.infer<typeof crearGrupoGrupalBodySchema>;
 export type ActualizarGrupoGrupalBody = z.infer<typeof actualizarGrupoGrupalBodySchema>;
+/** Fila de grupo. */
 export type GrupoDB = {
   id_grupo: number;
   nombre: string;
@@ -61,10 +68,12 @@ export type GrupoDB = {
   tipo: "personal" | "grupal";
   fecha_creacion: string;
 };
+// Grupo + rol del usuario en el.
 export type GrupoConRolDB = GrupoDB & {
   rol: "administrador" | "miembro";
   fecha_ingreso: string;
 };
+// Miembro con datos del usuario.
 export type MiembroGrupoDB = {
   id_usuario: number;
   nombre: string;

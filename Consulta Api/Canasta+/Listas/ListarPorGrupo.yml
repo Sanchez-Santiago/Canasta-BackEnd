@@ -2,20 +2,19 @@ info:
   name: ListarPorGrupo
   type: http
   seq: 1
+
 http:
   method: GET
-  url: "{{baseUrl}}/grupos/:idGrupo/listas"
-  params:
-    - name: idGrupo
-      value: "{{idGrupo}}"
-      type: path
-      description: ID del grupo duenio de las listas
+  url: http://localhost:3000/grupos/6/listas
   auth: inherit
+
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true
+
 docs: |-
   # GET `/grupos/:idGrupo/listas` (protegida)
   Lista las listas de un grupo. Solo si perteneces al grupo.

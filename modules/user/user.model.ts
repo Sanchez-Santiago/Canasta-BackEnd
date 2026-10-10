@@ -1,12 +1,15 @@
+// Tabla usuario: altas y busquedas minimas de auth.
 import { run, getOne } from "../../shared/db.helpers";
 import type { RegistrarUsuarioBody, UsuarioDB } from "./user.scheme";
 import { ahoraIso } from "../../shared/utils/dates";
 
+/** Alta: body sin plano + hash ya calculado. */
 export interface CrearUsuarioInput
   extends Omit<RegistrarUsuarioBody, "contrasena"> {
   contrasenaHash: string;
 }
 
+/** Inserta y relee por id (lastInsertRowid). */
 export async function crearUsuario(
   input: CrearUsuarioInput
 ): Promise<UsuarioDB | undefined> {
@@ -56,6 +59,7 @@ export async function crearUsuario(
   return obtenerUsuarioPorId(Number(id));
 }
 
+/** Por email en minusculas (login, registro, invitaciones). */
 export async function obtenerUsuarioPorEmail(
   email: string
 ): Promise<UsuarioDB | undefined> {
@@ -78,6 +82,7 @@ export async function obtenerUsuarioPorEmail(
   return getOne<UsuarioDB>(sql, { email: email.toLowerCase().trim() });
 }
 
+/** Por id (valida la sesion en /auth/yo). */
 export async function obtenerUsuarioPorId(
   idUsuario: number
 ): Promise<UsuarioDB | undefined> {

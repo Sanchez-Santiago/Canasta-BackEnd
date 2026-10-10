@@ -1,0 +1,27 @@
+info:
+  name: CrearNotificacion
+  type: http
+  seq: 2
+http:
+  method: POST
+  url: http://localhost:3000/grupos/2/notificaciones
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "tipo": "general",
+        "titulo": "Reunion de compras",
+        "descripcion": "Nos juntamos el sabado a la maniana"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # POST `/grupos/:idGrupo/notificaciones` (protegida)
+  Publica un anuncio. Solo admin. `tipo` libre (grupo, lista, movimiento, oferta, invitacion, general).
