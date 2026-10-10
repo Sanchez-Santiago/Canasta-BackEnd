@@ -112,9 +112,12 @@ Canasta-BackEnd/
 ## Autenticación
 
 - **Públicas**: `GET /`, `POST /auth/registrar`, `POST /auth/register`, `POST /auth/login`.
-- Todo lo demás exige cookie `auth_token` (`authMiddleware` → `req.user = { idUsuario }`).
+- Sesión por **cookie `auth_token` o header `Authorization: Bearer <jwt>`** (cookie primero; `authMiddleware` → `req.user`).
+- Registro y login responden `{ ok:true, data:{ usuario, token } }` **y** setean la cookie: web usa la cookie, apps guardan el `token` (Android: `EncryptedSharedPreferences`/Keystore; web: preferir memoria).
 - Registro crea el usuario **y su grupo personal** (admin) y setea la cookie.
-- Logout la limpia. Email en minúsculas/trim, `contrasena >= 6`.
+- Login distingue la causa: email inexistente → `404 No existe un usuario con ese email`; clave mal → `401 Contraseña incorrecta`.
+- Registro con clave débil → `400 Contraseña demasiado débil + recomendaciones[]` (mín 8, letra+número, suma mayúsculas/símbolos/largo; rechaza comunes como `123456`).
+- Logout limpia la cookie. Email en minúsculas/trim, `contrasena >= 8` solo al registrar.
 
 ## Endpoints
 
@@ -125,6 +128,7 @@ Base `http://localhost:3000` → `{ ok:true, data }` o `{ ok:false, error }`.
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
 | GET | `/` | pública | HTML con índice, buscador, endpoints y reglas |
+| GET | `/logs` | protegida | Historial de las últimas 200 solicitudes (`?limite=`) |
 | POST | `/auth/registrar` | pública | Alta + grupo personal + cookie (alias `/auth/register`) |
 | POST | `/auth/login` | pública | Valida y setea cookie |
 | GET | `/auth/yo` | protegida | Usuario de la sesión |

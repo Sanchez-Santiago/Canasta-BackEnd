@@ -16,7 +16,7 @@ export const registrarUsuarioBodySchema = z.object({
     .trim(),
   contrasena: z
     .string({ required_error: "La contraseña es obligatoria" })
-    .min(6, "La contraseña debe tener al menos 6 caracteres")
+    .min(8, "La contraseña debe tener al menos 8 caracteres")
     .max(100, "La contraseña no puede superar 100 caracteres"),
   localidad: z
     .string()
@@ -49,7 +49,7 @@ export const loginBodySchema = z.object({
     .trim(),
   contrasena: z
     .string({ required_error: "La contraseña es obligatoria" })
-    .min(6, "La contraseña debe tener al menos 6 caracteres"),
+    .min(1, "La contraseña es obligatoria"),
 });
 
 /** Usuario expuesto en la API (nunca lleva el hash). */

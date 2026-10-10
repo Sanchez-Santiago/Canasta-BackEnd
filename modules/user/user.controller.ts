@@ -17,10 +17,14 @@ export const registrar = asyncHandler(async (req: Request, res: Response) => {
   try {
     const resultado = await registrarUsuario(body);
     setAuthCookie(res, resultado.token);
-    return creado(res, { usuario: resultado.usuario });
+    return creado(res, { usuario: resultado.usuario, token: resultado.token });
   } catch (err) {
     if (err instanceof AuthError) {
-      return res.status(err.status).json({ ok: false, error: err.message });
+      return res.status(err.status).json({
+        ok: false,
+        error: err.message,
+        ...(err.detalles !== undefined ? err.detalles : {}),
+      });
     }
     throw err;
   }
@@ -33,10 +37,14 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   try {
     const resultado = await loginUsuario(body);
     setAuthCookie(res, resultado.token);
-    return ok(res, { usuario: resultado.usuario });
+    return ok(res, { usuario: resultado.usuario, token: resultado.token });
   } catch (err) {
     if (err instanceof AuthError) {
-      return res.status(err.status).json({ ok: false, error: err.message });
+      return res.status(err.status).json({
+        ok: false,
+        error: err.message,
+        ...(err.detalles !== undefined ? err.detalles : {}),
+      });
     }
     throw err;
   }

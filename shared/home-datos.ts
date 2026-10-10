@@ -29,6 +29,12 @@ export function getDocumentacionEndpoints(): GrupoEndpoints[] {
           auth: "publica",
           descripcion: "Esta pagina HTML: descripcion del sistema y rutas habilitadas.",
         },
+        {
+          metodo: "GET",
+          ruta: "/logs",
+          auth: "protegida",
+          descripcion: "Historial de las ultimas 200 solicitudes (?limite=).",
+        },
       ],
     },
     {
@@ -41,13 +47,13 @@ export function getDocumentacionEndpoints(): GrupoEndpoints[] {
           ruta: "/auth/registrar",
           auth: "publica",
           descripcion:
-            "Crea usuario (bcrypt) y su grupo personal automatico. Setea cookie auth_token. Alias: /auth/register.",
+            "Crea usuario (bcrypt) y su grupo personal automatico. Devuelve token + setea cookie auth_token. Alias: /auth/register.",
         },
         {
           metodo: "POST",
           ruta: "/auth/login",
           auth: "publica",
-          descripcion: "Valida email + contrasena y setea cookie auth_token.",
+          descripcion: "Valida email + contrasena. Devuelve token + setea cookie. Movil: guardar token y mandar Bearer.",
         },
         {
           metodo: "GET",

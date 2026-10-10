@@ -1,4 +1,4 @@
-// JWT en cookie auth_token: protege todo.
+// JWT en cookie auth_token o header Bearer: protege todo.
 // Publicas: GET /, POST /auth/registrar|register|login.
 import type { Request, Response, NextFunction } from "express";
 import { AUTH_COOKIE_NAME } from "../utils/cookies";
@@ -31,7 +31,19 @@ function esRutaPublicaAuth(req: Request): boolean {
   return false;
 }
 
-/** Verifica la cookie y setea req.user; 401 si falta o es invalida. */
+/** Extrae el token: cookie primero, si no hay usa Authorization Bearer. */
+function extraerToken(req: Request): string | null {
+  const cookie = req.cookies?.[AUTH_COOKIE_NAME];
+  if (cookie && typeof cookie === "string" && cookie !== "") return cookie;
+  const header = req.headers.authorization;
+  if (header && header.startsWith("Bearer ")) {
+    const token = header.slice("Bearer ".length).trim();
+    if (token !== "") return token;
+  }
+  return null;
+}
+
+/** Verifica cookie o Bearer y setea req.user; 401 si falta o es invalido. */
 export function authMiddleware(
   req: Request,
   res: Response,
@@ -41,9 +53,9 @@ export function authMiddleware(
     return next();
   }
 
-  const token = req.cookies?.[AUTH_COOKIE_NAME];
+  const token = extraerToken(req);
 
-  if (!token || typeof token !== "string") {
+  if (!token) {
     res.status(401).json({ ok: false, error: "No autorizado" });
     return;
   }

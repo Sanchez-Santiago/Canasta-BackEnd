@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://localhost:3000/listas/3/productos
+  url: http://localhost:3000/listas/4/productos
   auth: inherit
 
 settings:

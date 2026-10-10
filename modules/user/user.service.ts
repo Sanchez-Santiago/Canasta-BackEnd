@@ -10,18 +10,20 @@ import {
   obtenerUsuarioPorEmail,
   obtenerUsuarioPorId,
 } from "./user.model";
-import { hashContrasena, compararContrasena } from "../../shared/utils/password";
+import { hashContrasena, compararContrasena, evaluarFortaleza } from "../../shared/utils/password";
 import { firmarJwt } from "../../shared/utils/jwt";
 import { crearGrupoPersonal } from "../grupo/grupo.model";
 
 /** Error con status para responder desde el controller. */
 export class AuthError extends Error {
   status: number;
+  detalles?: unknown;
 
-  constructor(mensaje: string, status = 400) {
+  constructor(mensaje: string, status = 400, detalles?: unknown) {
     super(mensaje);
     this.name = "AuthError";
     this.status = status;
+    this.detalles = detalles;
   }
 }
 
@@ -47,6 +49,13 @@ export async function registrarUsuario(
 
   if (existente) {
     throw new AuthError("El email ya se encuentra registrado", 409);
+  }
+
+  const fortaleza = evaluarFortaleza(data.contrasena);
+  if (!fortaleza.fuerte) {
+    throw new AuthError("Contraseña demasiado débil", 400, {
+      recomendaciones: fortaleza.recomendaciones,
+    });
   }
 
   const contrasenaHash = await hashContrasena(data.contrasena);
@@ -80,13 +89,13 @@ export async function loginUsuario(
   const usuarioDb = await obtenerUsuarioPorEmail(data.email);
 
   if (!usuarioDb) {
-    throw new AuthError("Credenciales inválidas", 401);
+    throw new AuthError("No existe un usuario con ese email", 404);
   }
 
   const valido = await compararContrasena(data.contrasena, usuarioDb.contrasena);
 
   if (!valido) {
-    throw new AuthError("Credenciales inválidas", 401);
+    throw new AuthError("Contraseña incorrecta", 401);
   }
 
   const usuario = aUsuarioRespuesta(usuarioDb);
