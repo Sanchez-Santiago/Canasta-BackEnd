@@ -1,0 +1,17 @@
+info:
+  name: AbandonarGrupo
+  type: http
+  seq: 8
+http:
+  method: DELETE
+  url: http://localhost:3000/grupos/2/miembros/yo
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # DELETE `/grupos/:idGrupo/miembros/yo` (protegida)
+  Abandona un grupo grupal. No vale para el personal ni siendo el ultimo
+  administrador (esa via es eliminar el grupo). Responde `{ salido:true }`.

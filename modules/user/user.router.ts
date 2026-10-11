@@ -4,12 +4,16 @@ import { validate } from "../../shared/middlewares/validate";
 import {
   registrarUsuarioSchema,
   loginSchema,
+  actualizarPerfilBodySchema,
+  cambiarContrasenaBodySchema,
 } from "./user.scheme";
 import {
   registrar,
   login,
   logout,
   quienSoy,
+  actualizarPerfil,
+  cambiarContrasena,
 } from "./user.controller";
 
 // Router del dominio (el auth global va antes).
@@ -38,5 +42,11 @@ router.post(
 // Sesion: requieren cookie (protegidas).
 router.post("/logout", logout);
 router.get("/yo", quienSoy);
+router.put("/yo", validate({ body: actualizarPerfilBodySchema }), actualizarPerfil);
+router.patch(
+  "/contrasena",
+  validate({ body: cambiarContrasenaBodySchema }),
+  cambiarContrasena
+);
 
 export default router;

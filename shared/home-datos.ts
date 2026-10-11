@@ -59,7 +59,19 @@ export function getDocumentacionEndpoints(): GrupoEndpoints[] {
           metodo: "GET",
           ruta: "/auth/yo",
           auth: "protegida",
-          descripcion: "Devuelve el usuario autenticado segun la cookie.",
+          descripcion: "Devuelve el usuario autenticado segun la cookie o Bearer.",
+        },
+        {
+          metodo: "PUT",
+          ruta: "/auth/yo",
+          auth: "protegida",
+          descripcion: "Edita el propio perfil (nombre/ubicacion). Al menos 1 campo.",
+        },
+        {
+          metodo: "PATCH",
+          ruta: "/auth/contrasena",
+          auth: "protegida",
+          descripcion: "Cambia la propia clave (verifica actual, exige distinta y fuerte).",
         },
         {
           metodo: "POST",
@@ -97,6 +109,18 @@ export function getDocumentacionEndpoints(): GrupoEndpoints[] {
           ruta: "/grupos/:idGrupo/miembros",
           auth: "protegida",
           descripcion: "Lista miembros con rol (admins primero). Solo miembros.",
+        },
+        {
+          metodo: "DELETE",
+          ruta: "/grupos/:idGrupo/miembros/yo",
+          auth: "protegida",
+          descripcion: "Abandona el grupo grupal. Nunca el personal ni último admin.",
+        },
+        {
+          metodo: "DELETE",
+          ruta: "/grupos/:idGrupo/miembros/:idUsuario",
+          auth: "protegida",
+          descripcion: "Expulsa a otro miembro. Solo admin, nunca personal ni a sí mismo.",
         },
         {
           metodo: "PUT",

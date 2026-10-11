@@ -57,6 +57,17 @@ export const idGrupoParamSchema = z.object({
     .pipe(z.number().int().positive()),
 });
 
+export const idMiembroParamSchema = z.object({
+  idGrupo: z
+    .string()
+    .transform((v) => Number(v))
+    .pipe(z.number().int().positive()),
+  idUsuario: z
+    .string()
+    .transform((v) => Number(v))
+    .pipe(z.number().int().positive()),
+});
+
 export type CrearGrupoGrupalBody = z.infer<typeof crearGrupoGrupalBodySchema>;
 export type ActualizarGrupoGrupalBody = z.infer<typeof actualizarGrupoGrupalBodySchema>;
 /** Fila de grupo. */

@@ -64,6 +64,49 @@ export const usuarioRespuestaSchema = z.object({
   fecha_creacion: z.string(),
 });
 
+export const actualizarPerfilBodySchema = z
+  .object({
+    nombre: z
+      .string()
+      .min(2, "El nombre debe tener al menos 2 caracteres")
+      .max(100, "El nombre no puede superar 100 caracteres")
+      .trim()
+      .optional(),
+    localidad: z
+      .string()
+      .max(100, "La localidad no puede superar 100 caracteres")
+      .trim()
+      .optional(),
+    provincia: z
+      .string()
+      .max(100, "La provincia no puede superar 100 caracteres")
+      .trim()
+      .optional(),
+    pais: z
+      .string()
+      .max(100, "El país no puede superar 100 caracteres")
+      .trim()
+      .optional(),
+    domicilio: z
+      .string()
+      .max(200, "El domicilio no puede superar 200 caracteres")
+      .trim()
+      .optional(),
+  })
+  .refine((d) => Object.keys(d).length > 0, {
+    message: "Enviá al menos un campo para actualizar",
+  });
+
+export const cambiarContrasenaBodySchema = z.object({
+  contrasena_actual: z
+    .string({ required_error: "La contraseña actual es obligatoria" })
+    .min(1, "La contraseña actual es obligatoria"),
+  contrasena_nueva: z
+    .string({ required_error: "La contraseña nueva es obligatoria" })
+    .min(8, "La contraseña nueva debe tener al menos 8 caracteres")
+    .max(100, "La contraseña nueva no puede superar 100 caracteres"),
+});
+
 export const registrarUsuarioSchema = z.object({
   body: registrarUsuarioBodySchema,
 });
@@ -74,6 +117,8 @@ export const loginSchema = z.object({
 
 export type RegistrarUsuarioBody = z.infer<typeof registrarUsuarioBodySchema>;
 export type LoginBody = z.infer<typeof loginBodySchema>;
+export type ActualizarPerfilBody = z.infer<typeof actualizarPerfilBodySchema>;
+export type CambiarContrasenaBody = z.infer<typeof cambiarContrasenaBodySchema>;
 export type UsuarioRespuesta = z.infer<typeof usuarioRespuestaSchema>;
 
 /** Fila de usuario (incluye hash: solo uso interno). */

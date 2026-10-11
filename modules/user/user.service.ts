@@ -2,6 +2,8 @@
 import type {
   RegistrarUsuarioBody,
   LoginBody,
+  ActualizarPerfilBody,
+  CambiarContrasenaBody,
   UsuarioRespuesta,
   UsuarioDB,
 } from "./user.scheme";
@@ -9,6 +11,8 @@ import {
   crearUsuario,
   obtenerUsuarioPorEmail,
   obtenerUsuarioPorId,
+  actualizarUsuario,
+  actualizarContrasena,
 } from "./user.model";
 import { hashContrasena, compararContrasena, evaluarFortaleza } from "../../shared/utils/password";
 import { firmarJwt } from "../../shared/utils/jwt";
@@ -111,4 +115,42 @@ export async function obtenerUsuarioAutenticado(
   const usuarioDb = await obtenerUsuarioPorId(idUsuario);
   if (!usuarioDb) return null;
   return aUsuarioRespuesta(usuarioDb);
+}
+
+/** Edita el propio perfil (nombre/ubicación). Email y clave van por separado. */
+export async function actualizarPerfilService(
+  idUsuario: number,
+  datos: ActualizarPerfilBody
+): Promise<{ usuario: UsuarioRespuesta }> {
+  const existe = await obtenerUsuarioPorId(idUsuario);
+  if (!existe) throw new AuthError("Usuario no encontrado", 401);
+  const actualizado = await actualizarUsuario(idUsuario, datos);
+  if (!actualizado) throw new AuthError("No se pudo actualizar el perfil", 500);
+  return { usuario: aUsuarioRespuesta(actualizado) };
+}
+
+/** Cambia la clave: verifica la actual, exige distinta y fuerte. */
+export async function cambiarContrasenaService(
+  idUsuario: number,
+  datos: CambiarContrasenaBody
+): Promise<{ actualizado: boolean }> {
+  const usuarioDb = await obtenerUsuarioPorId(idUsuario);
+  if (!usuarioDb) throw new AuthError("Usuario no encontrado", 401);
+
+  const actualOk = await compararContrasena(datos.contrasena_actual, usuarioDb.contrasena);
+  if (!actualOk) throw new AuthError("Contraseña actual incorrecta", 401);
+
+  const esIgual = await compararContrasena(datos.contrasena_nueva, usuarioDb.contrasena);
+  if (esIgual) throw new AuthError("La nueva contraseña debe ser diferente", 400);
+
+  const fortaleza = evaluarFortaleza(datos.contrasena_nueva);
+  if (!fortaleza.fuerte) {
+    throw new AuthError("Contraseña demasiado débil", 400, {
+      recomendaciones: fortaleza.recomendaciones,
+    });
+  }
+
+  const ok = await actualizarContrasena(idUsuario, await hashContrasena(datos.contrasena_nueva));
+  if (!ok) throw new AuthError("No se pudo actualizar la contraseña", 500);
+  return { actualizado: true };
 }

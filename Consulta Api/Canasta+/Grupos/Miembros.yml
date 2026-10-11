@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://localhost:3000/grupos/10/miembros
+  url: http://localhost:3000/grupos/12/miembros
   auth: inherit
 
 settings:

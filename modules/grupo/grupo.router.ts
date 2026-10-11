@@ -5,6 +5,7 @@ import {
   crearGrupoGrupalBodySchema,
   actualizarGrupoGrupalBodySchema,
   idGrupoParamSchema,
+  idMiembroParamSchema,
 } from "./grupo.scheme";
 import {
   crearGrupal,
@@ -13,6 +14,8 @@ import {
   obtenerMiembros,
   actualizarGrupal,
   eliminarGrupal,
+  expulsarMiembro,
+  abandonarGrupo,
 } from "./grupo.controller";
 
 // Router del dominio (montado en index.ts).
@@ -31,6 +34,20 @@ router.get(
   validate({ params: idGrupoParamSchema }),
 // Miembros con rol.
   obtenerMiembros
+);
+// Abandonar (literal "yo" antes que :idUsuario para no caer en el param).
+router.delete(
+  "/:idGrupo/miembros/yo",
+  validate({ params: idGrupoParamSchema }),
+// Salir del grupo grupal.
+  abandonarGrupo
+);
+// Expulsar un miembro (solo admin).
+router.delete(
+  "/:idGrupo/miembros/:idUsuario",
+  validate({ params: idMiembroParamSchema }),
+// Expulsar miembro.
+  expulsarMiembro
 );
 router.get(
   "/:idGrupo",

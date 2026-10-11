@@ -4,6 +4,8 @@ import {
   registrarUsuario,
   loginUsuario,
   obtenerUsuarioAutenticado,
+  actualizarPerfilService,
+  cambiarContrasenaService,
   AuthError,
 } from "./user.service";
 import { setAuthCookie, clearAuthCookie } from "../../shared/utils/cookies";
@@ -69,4 +71,46 @@ export const quienSoy = asyncHandler(async (req: Request, res: Response) => {
   }
 
   return ok(res, { usuario });
+});
+
+/** PUT /auth/yo: edita el propio perfil. */
+export const actualizarPerfil = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ ok: false, error: "No autorizado" });
+  }
+
+  try {
+    const resultado = await actualizarPerfilService(req.user.idUsuario, req.body);
+    return ok(res, resultado);
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return res.status(err.status).json({
+        ok: false,
+        error: err.message,
+        ...(err.detalles !== undefined ? err.detalles : {}),
+      });
+    }
+    throw err;
+  }
+});
+
+/** PATCH /auth/contrasena: cambia la propia clave. */
+export const cambiarContrasena = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ ok: false, error: "No autorizado" });
+  }
+
+  try {
+    const resultado = await cambiarContrasenaService(req.user.idUsuario, req.body);
+    return ok(res, resultado);
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return res.status(err.status).json({
+        ok: false,
+        error: err.message,
+        ...(err.detalles !== undefined ? err.detalles : {}),
+      });
+    }
+    throw err;
+  }
 });

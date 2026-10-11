@@ -1,0 +1,28 @@
+info:
+  name: ActualizarPerfil
+  type: http
+  seq: 5
+http:
+  method: PUT
+  url: http://localhost:3000/auth/yo
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Mi Nombre",
+        "localidad": "Cordoba"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # PUT `/auth/yo` (protegida)
+  Edita el propio perfil. Campos opcionales: `nombre` (2-100), `localidad`,
+  `provincia`, `pais`, `domicilio`. Al menos 1 campo (vacio → 400).
+  `email` y `contrasena` no se tocan por aca (clave: PATCH /auth/contrasena).

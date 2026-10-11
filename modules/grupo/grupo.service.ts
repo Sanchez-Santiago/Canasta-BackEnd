@@ -6,6 +6,8 @@ import {
   obtenerMiembrosDeGrupo,
   actualizarGrupoGrupal,
   eliminarGrupoGrupal,
+  eliminarMiembro,
+  contarAdministradores,
 } from "./grupo.model";
 import type {
   CrearGrupoGrupalBody,
@@ -142,4 +144,46 @@ export async function eliminarGrupoGrupalService(
   const ok = await eliminarGrupoGrupal(idGrupo);
   if (!ok) throw new GrupoError("No se pudo eliminar el grupo grupal", 500);
   return { eliminado: true };
+}
+
+/** Expulsa a otro miembro (solo admin, nunca personal ni a uno mismo). */
+export async function expulsarMiembroService(
+  idUsuario: number,
+  idGrupo: number,
+  idUsuarioObjetivo: number
+): Promise<{ eliminado: boolean }> {
+  const miembro = await obtenerGrupoConRol(idUsuario, idGrupo);
+  if (!miembro) throw new GrupoError("Grupo no encontrado o no perteneces a él", 404);
+  if (miembro.tipo === "personal") {
+    throw new GrupoError("No se puede expulsar del grupo personal", 403);
+  }
+  if (miembro.rol !== "administrador") {
+    throw new GrupoError("Solo el administrador puede expulsar miembros", 403);
+  }
+  if (idUsuarioObjetivo === idUsuario) {
+    throw new GrupoError("No podés expulsarte del grupo", 400);
+  }
+  const objetivo = await obtenerGrupoConRol(idUsuarioObjetivo, idGrupo);
+  if (!objetivo) throw new GrupoError("El usuario no es miembro del grupo", 404);
+  const ok = await eliminarMiembro(idGrupo, idUsuarioObjetivo);
+  if (!ok) throw new GrupoError("No se pudo expulsar al miembro", 500);
+  return { eliminado: true };
+}
+
+/** Abandona un grupo grupal (nunca el personal ni siendo último admin). */
+export async function abandonarGrupoService(
+  idUsuario: number,
+  idGrupo: number
+): Promise<{ salido: boolean }> {
+  const miembro = await obtenerGrupoConRol(idUsuario, idGrupo);
+  if (!miembro) throw new GrupoError("Grupo no encontrado o no perteneces a él", 404);
+  if (miembro.tipo === "personal") {
+    throw new GrupoError("No se puede abandonar el grupo personal", 403);
+  }
+  if (miembro.rol === "administrador" && (await contarAdministradores(idGrupo)) <= 1) {
+    throw new GrupoError("Sos el último administrador del grupo", 409);
+  }
+  const ok = await eliminarMiembro(idGrupo, idUsuario);
+  if (!ok) throw new GrupoError("No se pudo abandonar el grupo", 500);
+  return { salido: true };
 }

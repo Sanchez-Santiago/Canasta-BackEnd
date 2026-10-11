@@ -122,6 +122,7 @@ Canasta-BackEnd/
 ## Endpoints
 
 Base `http://localhost:3000` → `{ ok:true, data }` o `{ ok:false, error }`.
+Referencia exacta con request/response y fallos: [`docs/API.md`](docs/API.md).
 
 ### Raíz y Auth
 
@@ -131,7 +132,9 @@ Base `http://localhost:3000` → `{ ok:true, data }` o `{ ok:false, error }`.
 | GET | `/logs` | protegida | Historial de las últimas 200 solicitudes (`?limite=`) |
 | POST | `/auth/registrar` | pública | Alta + grupo personal + cookie (alias `/auth/register`) |
 | POST | `/auth/login` | pública | Valida y setea cookie |
-| GET | `/auth/yo` | protegida | Usuario de la sesión |
+| GET | `/auth/yo` | protegida | Usuario de la sesión (cookie o Bearer) |
+| PUT | `/auth/yo` | protegida | Edita perfil propio (≥1 campo, sin email ni clave) |
+| PATCH | `/auth/contrasena` | protegida | Cambia clave (actual + nueva distinta y fuerte) |
 | POST | `/auth/logout` | protegida | Limpia la cookie |
 
 ### Grupos — 1 personal + N grupales
@@ -144,6 +147,8 @@ Roles: `administrador | miembro`. El personal **no se edita ni elimina**.
 | POST | `/grupos/grupal` | protegida | Crea grupal (creador = admin) |
 | GET | `/grupos/:idGrupo` | protegida | Detalle + mi rol (solo miembro) |
 | GET | `/grupos/:idGrupo/miembros` | protegida | Miembros con rol (admins primero) |
+| DELETE | `/grupos/:idGrupo/miembros/yo` | protegida | Abandona el grupal (no personal ni último admin) |
+| DELETE | `/grupos/:idGrupo/miembros/:idUsuario` | protegida | Expulsa a otro (admin, no personal ni a sí mismo) |
 | PUT / DELETE | `/grupos/:idGrupo` | protegida | Solo admin; personal → 403 |
 
 ### Listas — `activa | completada | archivada`

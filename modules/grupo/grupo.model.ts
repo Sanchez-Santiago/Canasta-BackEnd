@@ -172,3 +172,23 @@ export async function eliminarGrupoGrupal(idGrupo: number): Promise<boolean> {
   const rs = await run(sql, { idGrupo });
   return filasAfectadas(rs) > 0;
 }
+
+/** Saca a un miembro del grupo (expulsar o abandonar usan esto). */
+export async function eliminarMiembro(
+  idGrupo: number,
+  idUsuario: number
+): Promise<boolean> {
+  const sql = `DELETE FROM usuario_grupo WHERE id_grupo = @idGrupo AND id_usuario = @idUsuario`;
+  const rs = await run(sql, { idGrupo, idUsuario });
+  return filasAfectadas(rs) > 0;
+}
+
+/** Cuantos administradores tiene el grupo. */
+export async function contarAdministradores(idGrupo: number): Promise<number> {
+  const sql = `
+    SELECT COUNT(*) AS cantidad FROM usuario_grupo
+    WHERE id_grupo = @idGrupo AND rol = 'administrador'
+  `;
+  const row = await getOne<{ cantidad: number }>(sql, { idGrupo });
+  return Number(row?.cantidad ?? 0);
+}
