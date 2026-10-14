@@ -19,15 +19,15 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             PROJECT_DIR=~/Canasta-BackEnd
-            
+
             # Si el proyecto no existe, lo clonamos
             if [ ! -d "$PROJECT_DIR" ]; then
               git clone git@github.com:${{ github.repository }}.git $PROJECT_DIR
             fi
-            
+
             cd $PROJECT_DIR
             git pull origin main
-            
+
             # Construir imagen y levantar contenedor de forma limpia
             docker build -t canasta-backend .
             docker stop canasta-backend-container || true
