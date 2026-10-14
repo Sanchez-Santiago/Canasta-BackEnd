@@ -39,6 +39,6 @@ jobs:
               --name canasta-backend-container \
               --restart unless-stopped \
               -p 3000:3000 \
-              --env-file "./.env" \
+              --env-file "$PROJECT_DIR/.env" \
               canasta-backend:latest
             docker ps --filter name=canasta-backend-container
