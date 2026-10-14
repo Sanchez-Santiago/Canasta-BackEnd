@@ -28,8 +28,13 @@ jobs:
             cd $PROJECT_DIR
             git pull origin main
 
-            # Construir imagen y levantar contenedor de forma limpia
+            # Construir imagen y levantar contenedor leyendo el .env del servidor
             docker build -t canasta-backend .
             docker stop canasta-backend-container || true
             docker rm canasta-backend-container || true
-            docker run -d --name canasta-backend-container --restart always -p 3000:3000 canasta-backend
+            docker run -d \
+              --name canasta-backend-container \
+              --restart always \
+              -p 3000:3000 \
+              --env-file /home/santiago/Canasta-BackEnd/.env \
+              canasta-backend
