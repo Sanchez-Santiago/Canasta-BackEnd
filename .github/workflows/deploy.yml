@@ -36,5 +36,5 @@ jobs:
               --name canasta-backend-container \
               --restart always \
               -p 3000:3000 \
-              --env-file /home/santiago/Canasta-BackEnd/.env \
+              --env-file $HOME/Canasta-BackEnd/.env \
               canasta-backend
