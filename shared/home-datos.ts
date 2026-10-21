@@ -194,13 +194,14 @@ export function getDocumentacionEndpoints(): GrupoEndpoints[] {
           metodo: "GET",
           ruta: "/listas/:idLista/productos",
           auth: "protegida",
-          descripcion: "Lista productos ordenados por prioridad y fecha.",
+          descripcion: "Lista productos ordenados por prioridad y fecha. Filtros ?marca=&categoria=&unidad_medida=.",
         },
         {
           metodo: "POST",
           ruta: "/listas/:idLista/productos",
           auth: "protegida",
-          descripcion: "Agrega producto. Cualquier miembro puede crearlo.",
+          descripcion:
+            "Agrega producto. Cualquier miembro. Campos: nombre, cantidad, prioridad, precio_estimado_unitario, codigo_producto, unidad_medida (compra), marca, categoria. Tras crear, busca ofertas con nombre+marca+categoria y las guarda.",
         },
         {
           metodo: "GET",

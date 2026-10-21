@@ -38,6 +38,9 @@ function aItemRespuesta(i: any): ProductoListaRespuesta {
     cantidad: i.cantidad,
     precio_estimado_unitario: i.precio_estimado_unitario ?? null,
     codigo_producto: i.codigo_producto ?? null,
+    unidad_medida: i.unidad_medida ?? "unidad",
+    marca: i.marca ?? null,
+    categoria: i.categoria ?? null,
     estado: i.estado,
     fecha_creacion: i.fecha_creacion,
   };
@@ -92,15 +95,16 @@ export async function crearProductoListaService(
   return { producto: aItemRespuesta(creado), ofertas };
 }
 
-/** Items solo si pertenezco. */
+/** Items solo si pertenezco (filtros opcionales por marca/categoria/unidad). */
 export async function obtenerProductosPorListaService(
   idUsuario: number,
-  idLista: number
+  idLista: number,
+  filtros: { marca?: string; categoria?: string; unidad_medida?: string } = {}
 ): Promise<{ productos: ProductoListaRespuesta[] }> {
   const p = await obtenerPermisosSobreLista(idUsuario, idLista);
   if (!p.existe) throw new ProductoListaError("Lista no encontrada", 404);
   if (!p.pertenece) throw new ProductoListaError("No perteneces al grupo de esta lista", 403);
-  const items = await obtenerProductosPorLista(idLista);
+  const items = await obtenerProductosPorLista(idLista, filtros);
   return { productos: items.map(aItemRespuesta) };
 }
 

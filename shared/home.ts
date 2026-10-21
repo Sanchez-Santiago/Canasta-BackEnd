@@ -31,7 +31,8 @@ function reglasClave(): string[] {
     "Dinero en <strong>centavos</strong> (entero) y fechas en <strong>TEXT ISO</strong>.",
     "Editar producto: <strong>cualquier miembro</strong>; eliminarlo: creadores o admin.",
     "Listas y movimientos: editar/eliminar solo <strong>creador o admin</strong>.",
-    "Ofertas: catalogo global + ofertas por producto. El buscador no guarda nada; al crear un producto se buscan y guardan sus ofertas. Eliminar: admin del grupo, creador de la lista o del producto (el global solo lo borra el sistema). Las vencidas las limpia el backend.",
+    "Producto de lista: <strong>unidad_medida</strong> (de compra: docena, rollo, kg...), <strong>marca</strong> y <strong>categoria</strong>. Su <code>unidad_medida</code> es distinta de la de oferta (kg|L).",
+    "Ofertas: catalogo global + ofertas por producto. El buscador no guarda nada; al crear un producto se buscan (nombre+marca+categoria) y guardan sus ofertas. Eliminar: admin del grupo, creador de la lista o del producto (el global solo lo borra el sistema). Las vencidas las limpia el backend.",
     "Invitar: <strong>solo admin</strong> y por email; aceptar suma como miembro.",
     "Notificaciones: <strong>tablon sin edicion</strong>; publica y borra el admin.",
   ];

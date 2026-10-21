@@ -7,6 +7,7 @@ import {
   cambiarEstadoItemBodySchema,
   idListaParamSchemaItems,
   idProductoListaParamSchema,
+  listarProductosQuerySchema,
 } from "./productoLista.scheme";
 import {
   crearProducto,
@@ -22,8 +23,11 @@ const router = Router();
 
 router.get(
   "/listas/:idLista/productos",
-  validate({ params: idListaParamSchemaItems }),
-// Listar de la lista.
+  validate({
+    params: idListaParamSchemaItems,
+    query: listarProductosQuerySchema,
+  }),
+// Listar de la lista (filtros opcionales por marca/categoria/unidad).
   obtenerProductosPorLista
 );
 router.post(

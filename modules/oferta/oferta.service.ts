@@ -187,13 +187,35 @@ export type ResultadoSincronizacion = {
 };
 
 /**
- * Busca en vivo por el nombre del producto y GUARDA todas las ofertas que
- * pasan el filtro, ligadas al producto (`id_producto_lista`).
+ * Arma los terminos de busqueda con lo que el item aporte: nombre + marca +
+ * categoria. Devuelve la lista en orden de prioridad (mas especifico primero)
+ * para ir soltando precision si no hay resultados.
+ */
+export function terminosDeBusqueda(item: {
+  nombre: string;
+  marca?: string | null;
+  categoria?: string | null;
+}): string[] {
+  const nombre = item.nombre.trim();
+  const marca = (item.marca ?? "").trim();
+  const categoria = (item.categoria ?? "").trim();
+  const candidatos = [
+    [nombre, marca, categoria].filter(Boolean).join(" "),
+    [nombre, marca].filter(Boolean).join(" "),
+    nombre,
+  ];
+  // Deduplica conservando el orden.
+  return [...new Set(candidatos.filter((t) => t.length >= 2))];
+}
+
+/**
+ * Busca en vivo por el nombre (y marca/categoria si las hay) del producto y
+ * GUARDA todas las ofertas que pasan el filtro, ligadas al producto.
  *
- * Reemplaza las ofertas previas del producto para no acumular duplicados:
- * se borran las anteriores y se insertan las nuevas.
+ * Reemplaza las ofertas previas del producto para no acumular duplicados.
+ * Si el termino mas especifico no devuelve nada, reintenta con uno mas amplio.
  *
- * @param termino override opcional del termino de busqueda (por defecto: nombre).
+ * @param termino override opcional del termino de busqueda (gana sobre todo).
  */
 export async function sincronizarOfertasDeProducto(
   idProductoLista: number,
@@ -202,8 +224,22 @@ export async function sincronizarOfertasDeProducto(
   const ctx = await obtenerItemConContexto(idProductoLista);
   if (!ctx.item) throw new OfertaError("Producto no encontrado", 404);
 
-  const q = (termino ?? ctx.item.nombre).trim();
-  const r = await buscarEnVivo(q, {});
+  const terminos = termino?.trim()
+    ? [termino.trim()]
+    : terminosDeBusqueda(ctx.item);
+  // terminosDeBusqueda nunca devuelve vacio (el nombre ya tiene >=2 chars),
+  // pero TS no lo sabe: garantizamos un primer termino.
+  const primero = terminos[0] ?? ctx.item.nombre.trim();
+
+  // Prueba de mas especifico a mas amplio y usa el primero con resultados.
+  let r = await buscarEnVivo(primero, {});
+  let query = primero;
+  for (let i = 1; i < terminos.length && r.ofertas.length === 0; i++) {
+    const t = terminos[i];
+    if (!t) continue;
+    r = await buscarEnVivo(t, {});
+    query = t;
+  }
 
   // Si el producto tiene codigo/EAN, prioriza las ofertas que coincidan.
   const codigo = (ctx.item.codigo_producto ?? "").trim();
@@ -234,7 +270,7 @@ export async function sincronizarOfertasDeProducto(
     eliminadas_previas: eliminadasPrevias,
     brutas: r.brutas,
     errores,
-    queryUsada: r.queryUsada,
+    queryUsada: query,
     ampliada: r.ampliada,
     ms: r.ms,
   };

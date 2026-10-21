@@ -216,7 +216,7 @@ Se conserva si el término encabeza el nombre o si la categoría arranca con él
 - **user**: email único, hash, grupo personal, JWT; jamás expone `contrasena`.
 - **grupo**: pertenencia vía `obtenerGrupoConRol`; personal bloqueado; miembros por rol/nombre.
 - **lista**: `obtenerPermisosSobreLista`; crear/leer miembros, resto creador/admin.
-- **productoLista**: contexto `producto→lista→grupo`; editar miembros, borrar creadores/admin.
+- **productoLista**: contexto `producto→lista→grupo`; editar miembros, borrar creadores/admin; `unidad_medida` (compra), `marca` y `categoria`; al crear un producto se auto-buscan y guardan sus ofertas.
 - **lista.calculos**: `round(precio×cantidad)` solo con precio, centavos→pesos.
 - **movimiento**: `GROUP BY tipo` + `construirResumen` (balance); editar/borrar creador/admin.
 - **oferta**: catálogo con `id_producto_lista` nullable (NULL = global; con valor = del producto, de ahí salen grupo/admin/creador); arrays `categoria_ruta`/`cuotas`/`promos` en JSON-TEXT; el buscador va a las fuentes en vivo y filtra vencidas; al crear un producto se auto-sincronizan sus ofertas; las vencidas las borra el sistema (barrido al arrancar + endpoint).

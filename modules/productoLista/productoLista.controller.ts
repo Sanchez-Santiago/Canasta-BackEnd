@@ -30,7 +30,11 @@ export const obtenerProductosPorLista = asyncHandler(async (req: Request, res: R
   if (!req.user) return res.status(401).json({ ok: false, error: "No autorizado" });
   const idLista = Number(req.params.idLista);
   try {
-    const r = await obtenerProductosPorListaService(req.user.idUsuario, idLista);
+    const r = await obtenerProductosPorListaService(
+      req.user.idUsuario,
+      idLista,
+      req.query as any
+    );
     return ok(res, r);
   } catch (err) {
     if (err instanceof ProductoListaError) return res.status(err.status).json({ ok: false, error: err.message });

@@ -348,12 +348,14 @@ Fallo: `403 { "ok": false, "error": "No tienes permisos para eliminar esta lista
 
 ## Productos (`prioritario|esencial|secundario`, `pendiente|comprado|omitido`)
 
+Un item tiene, además, `unidad_medida` (unidad de compra), `marca` y `categoria`. **`unidad_medida` del item no es la de `oferta`**: acá es cómo se compra (`docena`, `rollo`, `kg`…), mientras que en `oferta` es la unidad del precio por unidad (`kg`|`L`).
+
 ### GET /listas/:idLista/productos 🔒
 
-Params: `:idLista`. Devuelve `200` (por prioridad y fecha):
+Params: `:idLista`. Query opcional: `marca`, `categoria` (parciales), `unidad_medida` (exacta). Devuelve `200` (por prioridad y fecha):
 
 ```json
-{ "ok": true, "data": { "productos": [{ "id_producto_lista": 1, "id_lista": 1, "id_usuario_creador": 1, "nombre": "Leche", "descripcion": null, "prioridad": "secundario", "cantidad": 2, "precio_estimado_unitario": 800, "codigo_producto": null, "estado": "pendiente", "fecha_creacion": "2026-10-09 00:46:11" }] } }
+{ "ok": true, "data": { "productos": [{ "id_producto_lista": 1, "id_lista": 1, "id_usuario_creador": 1, "nombre": "Leche", "descripcion": null, "prioridad": "secundario", "cantidad": 2, "precio_estimado_unitario": 800, "codigo_producto": null, "unidad_medida": "sachet", "marca": "La Serenísima", "categoria": "Lácteos", "estado": "pendiente", "fecha_creacion": "2026-10-09 00:46:11" }] } }
 ```
 
 ### POST /listas/:idLista/productos 🔒
@@ -361,13 +363,17 @@ Params: `:idLista`. Devuelve `200` (por prioridad y fecha):
 Recibe body, ejemplo:
 
 ```json
-{ "nombre": "Leche", "descripcion": "Entera 1L", "prioridad": "esencial", "cantidad": 2, "precio_estimado_unitario": 800, "codigo_producto": "779000100", "estado": "pendiente" }
+{ "nombre": "Leche", "descripcion": "Entera 1L", "prioridad": "esencial", "cantidad": 2, "precio_estimado_unitario": 800, "codigo_producto": "779000100", "unidad_medida": "botella", "marca": "La Serenísima", "categoria": "Lácteos", "estado": "pendiente" }
 ```
 
 - Requeridos: `nombre` (2–150), `cantidad` (número > 0).
-- Opcionales: `descripcion` (≤250), `prioridad` (default `secundario`), `precio_estimado_unitario` (int ≥ 0 o `null`), `codigo_producto` (≤50), `estado` (default `pendiente`).
+- Opcionales: `descripcion` (≤250), `prioridad` (default `secundario`), `precio_estimado_unitario` (int ≥ 0 o `null`), `codigo_producto` (≤50), `unidad_medida` (default `unidad`; valores: `unidad`, `kg`, `gramos`, `L`, `ml`, `docena`, `media_docena`, `paquete`, `caja`, `botella`, `lata`, `sobre`, `rollo`, `bolsa`, `m`), `marca` (≤120), `categoria` (≤120), `estado` (default `pendiente`).
 
-Devuelve `201 { ok:true, data:{ producto:{...} } }`.
+**Reutiliza el buscador de ofertas**: busca por `nombre` + `marca` + `categoria` (los que existan) y, si no hay resultados, amplía a `nombre` + `marca` y luego solo `nombre`. Guarda todas las ofertas que pasan el filtro, ligadas al producto. Devuelve:
+
+```json
+{ "ok": true, "data": { "producto": { "...": "..." }, "ofertas": { "guardadas": 10, "errores": [], "queryUsada": "Leche La Serenísima Lácteos" } } }
+```
 
 ### GET /productos-lista/:idProductoLista 🔒
 
@@ -376,7 +382,7 @@ Fallo: `404 { "ok": false, "error": "Producto no encontrado" }`.
 
 ### PUT /productos-lista/:idProductoLista 🔒
 
-Recibe body parcial (cualquier miembro), ejemplo: `{ "nombre": "Leche (editada)", "cantidad": 3, "precio_estimado_unitario": 850, "prioridad": "prioritario" }`.
+Recibe body parcial (cualquier miembro), ejemplo: `{ "nombre": "Leche (editada)", "cantidad": 3, "precio_estimado_unitario": 850, "prioridad": "prioritario", "marca": "La Serenísima", "categoria": "Lácteos", "unidad_medida": "botella" }`.
 Devuelve `200 { ok:true, data:{ producto:{...} } }`.
 
 ### PATCH /productos-lista/:idProductoLista/estado 🔒

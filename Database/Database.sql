@@ -159,6 +159,15 @@ CREATE TABLE producto_lista (
             'omitido'
         )),
 
+    -- Presentacion y clasificacion del item
+    unidad_medida TEXT NOT NULL DEFAULT 'unidad'
+        CHECK (unidad_medida IN (
+            'unidad', 'kg', 'gramos', 'L', 'ml', 'docena', 'media_docena',
+            'paquete', 'caja', 'botella', 'lata', 'sobre', 'rollo', 'bolsa', 'm'
+        )),
+    marca TEXT,
+    categoria TEXT,
+
     fecha_creacion TEXT NOT NULL DEFAULT (datetime('now')),
 
     FOREIGN KEY (id_lista)
