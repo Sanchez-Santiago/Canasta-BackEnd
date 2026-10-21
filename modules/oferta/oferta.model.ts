@@ -237,6 +237,10 @@ function whereListado(f: ListarOfertasQuery): {
     conds.push("provincia = @provincia");
     params.provincia = f.provincia;
   }
+  if (f.id_producto_lista !== undefined) {
+    conds.push("id_producto_lista = @idProductoLista");
+    params.idProductoLista = f.id_producto_lista;
+  }
   if (f.disponible === "true") conds.push("disponible = 1");
   if (f.disponible === "false") conds.push("disponible = 0");
   if (f.vigentes === "true") {
