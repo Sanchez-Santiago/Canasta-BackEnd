@@ -18,6 +18,7 @@ import { renderHomePage } from "./shared/home";
 import { getDocumentacionEndpoints } from "./shared/home-datos";
 import { getDb } from "./config/database";
 import { env } from "./config/env";
+import { barrerOfertasVencidas } from "./modules/oferta/oferta.service";
 
 const app = express();
 
@@ -72,6 +73,12 @@ async function iniciarServidor() {
     await db.execute("SELECT 1");
     console.log("✅ Conexión a la base de datos establecida correctamente");
     console.log(`📌 URL de la base de datos: ${env.TURSO_DATABASE_URL}`);
+
+    // El sistema limpia solo: barre las ofertas vencidas al arrancar.
+    const vencidas = await barrerOfertasVencidas();
+    if (vencidas > 0) {
+      console.log(`🧹 Ofertas vencidas eliminadas: ${vencidas}`);
+    }
   } catch (error) {
     console.error("❌ Error al conectar con la base de datos:", error);
     process.exit(1);

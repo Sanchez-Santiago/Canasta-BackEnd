@@ -1,0 +1,22 @@
+info:
+  name: OfertasDeProducto
+  type: http
+  seq: 7
+http:
+  method: GET
+  url: http://localhost:3000/productos-lista/1/ofertas
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # GET `/productos-lista/:idProductoLista/ofertas` (protegida)
+
+  Devuelve las ofertas **guardadas** de un producto de la lista, ordenadas por
+  precio de oferta ascendente.
+
+  Requiere pertenecer al grupo de la lista. Fallos:
+  - `404` si el producto no existe.
+  - `403` si no perteneces al grupo.

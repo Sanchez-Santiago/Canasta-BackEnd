@@ -213,55 +213,98 @@ CREATE TABLE movimiento (
 
 
 -- =========================================================
--- 7. OFERTA
+-- 7. OFERTA (catalogo de ofertas scrapeadas)
 -- =========================================================
 
 CREATE TABLE oferta (
-    id_oferta INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    id_producto_lista INTEGER NOT NULL,
+    -- Origen e identificacion
+    fuente TEXT NOT NULL,
+    comercio TEXT,
+    producto TEXT NOT NULL,
+    url TEXT NOT NULL,
+    producto_id TEXT,
 
-    nombre_comercio TEXT NOT NULL,
+    -- Precios en pesos argentinos
+    precio_lista_pesos REAL,
+    precio_oferta_pesos REAL,
+    descuento_porc REAL,
 
+    -- Identificacion y clasificacion
+    ean TEXT,
+    marca TEXT,
+    categoria TEXT,
+    categoria_ruta TEXT, -- JSON array
+    detalle TEXT,
+
+    -- Presentacion
+    precio_unidad REAL,
+    unidad_medida TEXT CHECK (
+        unidad_medida IS NULL OR unidad_medida IN ('kg', 'L')
+    ),
+
+    -- Imagen y disponibilidad
+    imagen_url TEXT,
+    stock INTEGER,
+    disponible INTEGER NOT NULL DEFAULT 1
+        CHECK (disponible IN (0, 1)),
+
+    -- Ubicacion
     ubicacion TEXT,
-
     localidad TEXT,
-
     provincia TEXT,
 
-    latitud REAL,
+    -- Vigencia
+    fecha_inicio TEXT,
+    fecha_fin TEXT,
 
-    longitud REAL,
+    -- Beneficios y condiciones
+    cuotas TEXT,       -- JSON array
+    reintegro TEXT,
+    promos TEXT,       -- JSON array
+    tipo_promo TEXT,
 
-    fecha_inicio TEXT NOT NULL,
+    -- Control de extraccion
+    fecha_captura TEXT NOT NULL,
+    creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    fecha_fin TEXT NOT NULL,
-
-    porcentaje_descuento REAL
-        CHECK (
-            porcentaje_descuento IS NULL
-            OR (
-                porcentaje_descuento >= 0
-                AND porcentaje_descuento <= 100
-            )
-        ),
-
-    precio_original INTEGER
-        CHECK (precio_original IS NULL OR precio_original >= 0),
-
-    precio_oferta INTEGER
-        CHECK (precio_oferta IS NULL OR precio_oferta >= 0),
-
-    descripcion TEXT,
-
-    fecha_creacion TEXT NOT NULL DEFAULT (datetime('now')),
+    -- Vinculo con la lista del usuario.
+    -- NULL = oferta del catalogo global (buscador); con valor = guardada
+    -- desde un producto, y de ahi se deducen grupo, admin y creador.
+    id_producto_lista INTEGER,
 
     FOREIGN KEY (id_producto_lista)
         REFERENCES producto_lista(id_producto_lista)
         ON DELETE CASCADE,
 
-    CHECK (fecha_fin > fecha_inicio)
+    CHECK (precio_lista_pesos IS NULL OR precio_lista_pesos >= 0),
+    CHECK (precio_oferta_pesos IS NULL OR precio_oferta_pesos >= 0),
+    CHECK (
+        descuento_porc IS NULL
+        OR (descuento_porc >= 0 AND descuento_porc <= 100)
+    ),
+    CHECK (stock IS NULL OR stock >= 0)
 );
+
+CREATE INDEX IF NOT EXISTS idx_oferta_producto_lista
+ON oferta (id_producto_lista);
+
+CREATE INDEX IF NOT EXISTS idx_oferta_fuente_producto
+ON oferta (fuente, producto_id);
+
+CREATE INDEX IF NOT EXISTS idx_oferta_ean
+ON oferta (ean);
+
+CREATE INDEX IF NOT EXISTS idx_oferta_marca_producto
+ON oferta (marca, producto);
+
+CREATE INDEX IF NOT EXISTS idx_oferta_vigencia
+ON oferta (fecha_fin, disponible);
+
+CREATE INDEX IF NOT EXISTS idx_oferta_provincia_localidad
+ON oferta (provincia, localidad);
 
 
 -- =========================================================
@@ -377,16 +420,8 @@ CREATE INDEX idx_movimiento_fecha
 ON movimiento(fecha_movimiento);
 
 
-CREATE INDEX idx_oferta_producto
-ON oferta(id_producto_lista);
-
-
 CREATE INDEX idx_oferta_fecha
 ON oferta(fecha_inicio, fecha_fin);
-
-
-CREATE INDEX idx_oferta_ubicacion
-ON oferta(localidad, provincia);
 
 
 CREATE INDEX idx_invitacion_destino

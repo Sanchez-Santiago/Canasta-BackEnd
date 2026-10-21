@@ -1,280 +1,304 @@
-// Tabla oferta: CRUD + listados con filtros + contexto de grupo.
+// Tabla oferta (catalogo scrapeado): CRUD + listado con filtros.
+// `id_producto_lista` NULL = oferta del catalogo global (buscador);
+// con valor = guardada desde un producto, de ahi salen grupo/admin/creador.
 import { run, getOne, getAll, filasAfectadas } from "../../shared/db.helpers";
-import type { OfertaDB } from "./oferta.scheme";
-import {
-  obtenerItemConContexto,
-  obtenerRolEnGrupo,
-} from "../productoLista/productoLista.model";
 import { ahoraIso } from "../../shared/utils/dates";
+import type {
+  CrearOfertaBody,
+  ActualizarOfertaBody,
+  ListarOfertasQuery,
+  OfertaDB,
+} from "./oferta.scheme";
+import { serializarListaJson } from "./oferta.scheme";
 
-// Filtros compartidos por los dos listados.
-export interface FiltrosOferta {
-  vigentes?: boolean;
-  localidad?: string;
-  provincia?: string;
-}
-
-// Columnas comunes (evita repetir el SELECT).
+/** Columnas comunes (evita repetir el SELECT). */
 const SELECT_OFERTA = `
-  SELECT o.id_oferta, o.id_producto_lista, o.nombre_comercio, o.ubicacion,
-         o.localidad, o.provincia, o.latitud, o.longitud,
-         o.fecha_inicio, o.fecha_fin, o.porcentaje_descuento,
-         o.precio_original, o.precio_oferta, o.descripcion, o.fecha_creacion
-  FROM oferta o
+  SELECT id, fuente, comercio, producto, url, producto_id,
+         precio_lista_pesos, precio_oferta_pesos, descuento_porc,
+         ean, marca, categoria, categoria_ruta, detalle,
+         precio_unidad, unidad_medida, imagen_url, stock, disponible,
+         ubicacion, localidad, provincia,
+         fecha_inicio, fecha_fin,
+         cuotas, reintegro, promos, tipo_promo,
+         fecha_captura, creado_en, actualizado_en, id_producto_lista
+  FROM oferta
 `;
 
-// Arma ANDs + params de vigentes/ubicacion.
-function whereFiltros(f: FiltrosOferta): {
-  sql: string;
-  params: Record<string, unknown>;
-} {
-  const conds: string[] = [];
-  const params: Record<string, unknown> = {};
-  if (f.vigentes) {
-    conds.push("o.fecha_inicio <= @ahora AND o.fecha_fin >= @ahora");
-    params.ahora = ahoraIso();
-  }
-  if (f.localidad) {
-    conds.push("o.localidad = @localidad");
-    params.localidad = f.localidad;
-  }
-  if (f.provincia) {
-    conds.push("o.provincia = @provincia");
-    params.provincia = f.provincia;
-  }
-  return { sql: conds.length ? `AND ${conds.join(" AND ")}` : "", params };
+/** Contexto de ubicación (una cadena vacía se guarda como NULL). */
+function nuloSiVacio(v?: string | null): string | null {
+  if (v === undefined || v === null) return null;
+  const t = v.trim();
+  return t === "" ? null : t;
 }
 
-/** Alta ligada al producto. */
+/** Alta: devuelve la fila creada. */
 export async function crearOferta(
-  idProductoLista: number,
-  datos: {
-    nombre_comercio: string;
-    ubicacion?: string;
-    localidad?: string;
-    provincia?: string;
-    latitud?: number | null;
-    longitud?: number | null;
-    fecha_inicio: string;
-    fecha_fin: string;
-    porcentaje_descuento?: number | null;
-    precio_original?: number | null;
-    precio_oferta?: number | null;
-    descripcion?: string;
-  }
+  datos: CrearOfertaBody
 ): Promise<OfertaDB | undefined> {
   const sql = `
     INSERT INTO oferta (
-      id_producto_lista, nombre_comercio, ubicacion, localidad, provincia,
-      latitud, longitud, fecha_inicio, fecha_fin,
-      porcentaje_descuento, precio_original, precio_oferta,
-      descripcion, fecha_creacion
+      fuente, comercio, producto, url, producto_id,
+      precio_lista_pesos, precio_oferta_pesos, descuento_porc,
+      ean, marca, categoria, categoria_ruta, detalle,
+      precio_unidad, unidad_medida, imagen_url, stock, disponible,
+      ubicacion, localidad, provincia,
+      fecha_inicio, fecha_fin,
+      cuotas, reintegro, promos, tipo_promo,
+      fecha_captura, creado_en, actualizado_en, id_producto_lista
     )
     VALUES (
-      @idProductoLista, @nombreComercio, @ubicacion, @localidad, @provincia,
-      @latitud, @longitud, @fechaInicio, @fechaFin,
-      @porcentaje, @precioOriginal, @precioOferta,
-      @descripcion, @fechaCreacion
+      @fuente, @comercio, @producto, @url, @productoId,
+      @precioLista, @precioOferta, @descuento,
+      @ean, @marca, @categoria, @categoriaRuta, @detalle,
+      @precioUnidad, @unidadMedida, @imagenUrl, @stock, @disponible,
+      @ubicacion, @localidad, @provincia,
+      @fechaInicio, @fechaFin,
+      @cuotas, @reintegro, @promos, @tipoPromo,
+      @fechaCaptura, @ahora, @ahora, @idProductoLista
     )
   `;
+  const ahora = ahoraIso();
   const rs = await run(sql, {
-    idProductoLista,
-    nombreComercio: datos.nombre_comercio,
-    ubicacion: datos.ubicacion ?? null,
-    localidad: datos.localidad ?? null,
-    provincia: datos.provincia ?? null,
-    latitud: datos.latitud ?? null,
-    longitud: datos.longitud ?? null,
-    fechaInicio: datos.fecha_inicio,
-    fechaFin: datos.fecha_fin,
-    porcentaje: datos.porcentaje_descuento ?? null,
-    precioOriginal: datos.precio_original ?? null,
-    precioOferta: datos.precio_oferta ?? null,
-    descripcion: datos.descripcion ?? null,
-    fechaCreacion: ahoraIso(),
+    fuente: datos.fuente,
+    comercio: nuloSiVacio(datos.comercio),
+    producto: datos.producto,
+    url: datos.url,
+    productoId: nuloSiVacio(datos.producto_id),
+    precioLista: datos.precio_lista_pesos ?? null,
+    precioOferta: datos.precio_oferta_pesos ?? null,
+    descuento: datos.descuento_porc ?? null,
+    ean: nuloSiVacio(datos.ean),
+    marca: nuloSiVacio(datos.marca),
+    categoria: nuloSiVacio(datos.categoria),
+    categoriaRuta: serializarListaJson(datos.categoria_ruta),
+    detalle: nuloSiVacio(datos.detalle),
+    precioUnidad: datos.precio_unidad ?? null,
+    unidadMedida: datos.unidad_medida ?? null,
+    imagenUrl: nuloSiVacio(datos.imagen_url),
+    stock: datos.stock ?? null,
+    disponible: datos.disponible === false ? 0 : 1,
+    ubicacion: nuloSiVacio(datos.ubicacion),
+    localidad: nuloSiVacio(datos.localidad),
+    provincia: nuloSiVacio(datos.provincia),
+    fechaInicio: datos.fecha_inicio ?? null,
+    fechaFin: datos.fecha_fin ?? null,
+    cuotas: serializarListaJson(datos.cuotas),
+    reintegro: nuloSiVacio(datos.reintegro),
+    promos: serializarListaJson(datos.promos),
+    tipoPromo: nuloSiVacio(datos.tipo_promo),
+    fechaCaptura: datos.fecha_captura ?? ahora,
+    idProductoLista: datos.id_producto_lista ?? null,
+    ahora,
   });
   const id = rs.lastInsertRowid;
   if (id == null) return undefined;
   return obtenerOfertaPorId(Number(id));
 }
 
-/** Por id, sin chequear pertenencia. */
-export async function obtenerOfertaPorId(idOferta: number): Promise<OfertaDB | undefined> {
-  const sql = `${SELECT_OFERTA} WHERE o.id_oferta = @idOferta LIMIT 1`;
-  return getOne<OfertaDB>(sql, { idOferta });
+/** Por id. */
+export async function obtenerOfertaPorId(
+  idOferta: number
+): Promise<OfertaDB | undefined> {
+  return getOne<OfertaDB>(
+    `${SELECT_OFERTA} WHERE id = @idOferta LIMIT 1`,
+    { idOferta }
+  );
 }
 
-/** Del producto, con filtros. */
-export async function obtenerOfertasPorProducto(
-  idProductoLista: number,
-  filtros: FiltrosOferta = {}
-): Promise<OfertaDB[]> {
-  const f = whereFiltros(filtros);
-  const sql = `
-    ${SELECT_OFERTA}
-    WHERE o.id_producto_lista = @idProductoLista ${f.sql}
-    ORDER BY o.fecha_fin ASC, o.id_oferta ASC
-  `;
-  return getAll<OfertaDB>(sql, { idProductoLista, ...f.params });
-}
+/** Columnas actualizables y su valor normalizado. */
+const CAMPOS_TEXTO = [
+  "comercio",
+  "producto",
+  "url",
+  "producto_id",
+  "ean",
+  "marca",
+  "categoria",
+  "detalle",
+  "unidad_medida",
+  "imagen_url",
+  "ubicacion",
+  "localidad",
+  "provincia",
+  "fecha_inicio",
+  "fecha_fin",
+  "reintegro",
+  "tipo_promo",
+  "fecha_captura",
+] as const;
 
-/** De la lista (JOIN producto), con filtros. */
-export async function obtenerOfertasPorLista(
-  idLista: number,
-  filtros: FiltrosOferta = {}
-): Promise<OfertaDB[]> {
-  const f = whereFiltros(filtros);
-  const sql = `
-    ${SELECT_OFERTA}
-    INNER JOIN producto_lista pl ON pl.id_producto_lista = o.id_producto_lista
-    WHERE pl.id_lista = @idLista ${f.sql}
-    ORDER BY o.fecha_fin ASC, o.id_oferta ASC
-  `;
-  return getAll<OfertaDB>(sql, { idLista, ...f.params });
-}
+const CAMPOS_NUMERO = [
+  "precio_lista_pesos",
+  "precio_oferta_pesos",
+  "descuento_porc",
+  "precio_unidad",
+  "stock",
+] as const;
 
-/** UPDATE parcial. */
+/** UPDATE parcial; devuelve la fila actualizada. */
 export async function actualizarOferta(
   idOferta: number,
-  datos: Partial<{
-    nombre_comercio: string;
-    ubicacion: string;
-    localidad: string;
-    provincia: string;
-    latitud: number | null;
-    longitud: number | null;
-    fecha_inicio: string;
-    fecha_fin: string;
-    porcentaje_descuento: number | null;
-    precio_original: number | null;
-    precio_oferta: number | null;
-    descripcion: string;
-  }>
+  datos: ActualizarOfertaBody
 ): Promise<OfertaDB | undefined> {
   const sets: string[] = [];
   const params: Record<string, unknown> = { idOferta };
-  const texto = (k: string, v: string) => {
+
+  if (datos.fuente !== undefined) {
+    sets.push("fuente = @fuente");
+    params.fuente = datos.fuente;
+  }
+  for (const k of CAMPOS_TEXTO) {
+    const v = (datos as Record<string, unknown>)[k];
+    if (v === undefined) continue;
     sets.push(`${k} = @${k}`);
-    params[k] = v.trim() === "" ? null : v.trim();
-  };
-  if (datos.nombre_comercio !== undefined) {
-    sets.push("nombre_comercio = @nombre_comercio");
-    params.nombre_comercio = datos.nombre_comercio.trim();
+    // producto/url no se vacian a NULL: son obligatorios.
+    params[k] =
+      k === "producto" || k === "url" ? v : nuloSiVacio(v as string | null);
   }
-  if (datos.ubicacion !== undefined) texto("ubicacion", datos.ubicacion);
-  if (datos.localidad !== undefined) texto("localidad", datos.localidad);
-  if (datos.provincia !== undefined) texto("provincia", datos.provincia);
-  if (datos.latitud !== undefined) {
-    sets.push("latitud = @latitud");
-    params.latitud = datos.latitud;
+  for (const k of CAMPOS_NUMERO) {
+    const v = (datos as Record<string, unknown>)[k];
+    if (v === undefined) continue;
+    sets.push(`${k} = @${k}`);
+    params[k] = v;
   }
-  if (datos.longitud !== undefined) {
-    sets.push("longitud = @longitud");
-    params.longitud = datos.longitud;
+  if (datos.categoria_ruta !== undefined) {
+    sets.push("categoria_ruta = @categoria_ruta");
+    params.categoria_ruta = serializarListaJson(datos.categoria_ruta);
   }
-  if (datos.fecha_inicio !== undefined) {
-    sets.push("fecha_inicio = @fecha_inicio");
-    params.fecha_inicio = datos.fecha_inicio.trim();
+  if (datos.cuotas !== undefined) {
+    sets.push("cuotas = @cuotas");
+    params.cuotas = serializarListaJson(datos.cuotas);
   }
-  if (datos.fecha_fin !== undefined) {
-    sets.push("fecha_fin = @fecha_fin");
-    params.fecha_fin = datos.fecha_fin.trim();
+  if (datos.promos !== undefined) {
+    sets.push("promos = @promos");
+    params.promos = serializarListaJson(datos.promos);
   }
-  if (datos.porcentaje_descuento !== undefined) {
-    sets.push("porcentaje_descuento = @porcentaje_descuento");
-    params.porcentaje_descuento = datos.porcentaje_descuento;
+  if (datos.disponible !== undefined) {
+    sets.push("disponible = @disponible");
+    params.disponible = datos.disponible ? 1 : 0;
   }
-  if (datos.precio_original !== undefined) {
-    sets.push("precio_original = @precio_original");
-    params.precio_original = datos.precio_original;
+  if (datos.id_producto_lista !== undefined) {
+    sets.push("id_producto_lista = @idProductoLista");
+    params.idProductoLista = datos.id_producto_lista ?? null;
   }
-  if (datos.precio_oferta !== undefined) {
-    sets.push("precio_oferta = @precio_oferta");
-    params.precio_oferta = datos.precio_oferta;
-  }
-  if (datos.descripcion !== undefined) texto("descripcion", datos.descripcion);
+
   if (sets.length === 0) return obtenerOfertaPorId(idOferta);
-  const sql = `UPDATE oferta SET ${sets.join(", ")} WHERE id_oferta = @idOferta`;
+
+  sets.push("actualizado_en = @ahora");
+  params.ahora = ahoraIso();
+
+  const sql = `UPDATE oferta SET ${sets.join(", ")} WHERE id = @idOferta`;
   await run(sql, params);
   return obtenerOfertaPorId(idOferta);
 }
 
 /** DELETE. */
 export async function eliminarOferta(idOferta: number): Promise<boolean> {
-  const sql = `DELETE FROM oferta WHERE id_oferta = @idOferta`;
-  const rs = await run(sql, { idOferta });
+  const rs = await run(`DELETE FROM oferta WHERE id = @idOferta`, { idOferta });
   return filasAfectadas(rs) > 0;
 }
 
-/** Oferta + grupo via producto->lista (reutiliza el item). */
-export async function obtenerOfertaConContexto(
-  idUsuario: number,
-  idOferta: number
-): Promise<{
-  existe: boolean;
-  pertenece: boolean;
-  esAdminGrupo: boolean;
-  rolGrupo: "administrador" | "miembro" | null;
-  idGrupo: number | null;
-  idLista: number | null;
-  idProductoLista: number | null;
-  oferta: OfertaDB | null;
-}> {
-  const vacio = {
-    existe: false,
-    pertenece: false,
-    esAdminGrupo: false,
-    rolGrupo: null,
-    idGrupo: null,
-    idLista: null,
-    idProductoLista: null,
-    oferta: null,
-  } as const;
-
-  const oferta = await obtenerOfertaPorId(idOferta);
-  if (!oferta) return { ...vacio };
-
-  const ctx = await obtenerItemConContexto(oferta.id_producto_lista);
-  if (!ctx.item || ctx.idGrupo == null) return { ...vacio };
-
-  const rol = await obtenerRolEnGrupo(idUsuario, ctx.idGrupo);
-  if (!rol) {
-    return {
-      ...vacio,
-      existe: true,
-      idGrupo: ctx.idGrupo,
-      idLista: ctx.idLista,
-      idProductoLista: oferta.id_producto_lista,
-      oferta,
-    };
+/** WHERE dinamico del listado + params. */
+function whereListado(f: ListarOfertasQuery): {
+  sql: string;
+  params: Record<string, unknown>;
+} {
+  const conds: string[] = [];
+  const params: Record<string, unknown> = {};
+  if (f.fuente) {
+    conds.push("fuente = @fuente");
+    params.fuente = f.fuente;
   }
-
-  return {
-    existe: true,
-    pertenece: true,
-    esAdminGrupo: rol === "administrador",
-    rolGrupo: rol,
-    idGrupo: ctx.idGrupo,
-    idLista: ctx.idLista,
-    idProductoLista: oferta.id_producto_lista,
-    oferta,
-  };
+  if (f.comercio) {
+    conds.push("comercio LIKE @comercio");
+    params.comercio = `%${f.comercio}%`;
+  }
+  if (f.ean) {
+    conds.push("ean = @ean");
+    params.ean = f.ean;
+  }
+  if (f.marca) {
+    conds.push("marca LIKE @marca");
+    params.marca = `%${f.marca}%`;
+  }
+  if (f.categoria) {
+    conds.push("(categoria LIKE @categoria OR categoria_ruta LIKE @categoria)");
+    params.categoria = `%${f.categoria}%`;
+  }
+  if (f.producto) {
+    conds.push("producto LIKE @producto");
+    params.producto = `%${f.producto}%`;
+  }
+  if (f.localidad) {
+    conds.push("localidad = @localidad");
+    params.localidad = f.localidad;
+  }
+  if (f.provincia) {
+    conds.push("provincia = @provincia");
+    params.provincia = f.provincia;
+  }
+  if (f.disponible === "true") conds.push("disponible = 1");
+  if (f.disponible === "false") conds.push("disponible = 0");
+  if (f.vigentes === "true") {
+    // Vigente = sin fecha de fin, o con fin que todavia no paso.
+    conds.push("(fecha_fin IS NULL OR fecha_fin >= @ahora)");
+    params.ahora = ahoraIso();
+  }
+  return { sql: conds.length ? `WHERE ${conds.join(" AND ")}` : "", params };
 }
 
-/** Existe el producto + pertenencia al grupo. */
-export async function obtenerRolSobreProducto(
-  idUsuario: number,
+/** Listado con filtros y paginacion. */
+export async function listarOfertas(
+  filtros: ListarOfertasQuery
+): Promise<{ ofertas: OfertaDB[]; total: number }> {
+  const w = whereListado(filtros);
+  const limite = filtros.limite ?? 50;
+  const offset = filtros.offset ?? 0;
+
+  const total = await getOne<{ c: number }>(
+    `SELECT COUNT(*) AS c FROM oferta ${w.sql}`,
+    w.params
+  );
+
+  const sql = `
+    ${SELECT_OFERTA}
+    ${w.sql}
+    ORDER BY fecha_fin IS NULL, fecha_fin ASC, id ASC
+    LIMIT @limite OFFSET @offset
+  `;
+  const ofertas = await getAll<OfertaDB>(sql, { ...w.params, limite, offset });
+  return { ofertas, total: Number(total?.c ?? 0) };
+}
+
+/** Ofertas guardadas de un producto de lista (con su contexto de permisos). */
+export async function listarOfertasDeProducto(
   idProductoLista: number
-): Promise<{
-  existeProducto: boolean;
-  pertenece: boolean;
-  idGrupo: number | null;
-}> {
-  const ctx = await obtenerItemConContexto(idProductoLista);
-  if (!ctx.item || ctx.idGrupo == null) {
-    return { existeProducto: false, pertenece: false, idGrupo: null };
-  }
-  const rol = await obtenerRolEnGrupo(idUsuario, ctx.idGrupo);
-  if (!rol) return { existeProducto: true, pertenece: false, idGrupo: ctx.idGrupo };
-  return { existeProducto: true, pertenece: true, idGrupo: ctx.idGrupo };
+): Promise<OfertaDB[]> {
+  return getAll<OfertaDB>(
+    `${SELECT_OFERTA} WHERE id_producto_lista = @idProductoLista ORDER BY precio_oferta_pesos IS NULL, precio_oferta_pesos ASC, id ASC`,
+    { idProductoLista }
+  );
+}
+
+/** Borra las ofertas de un producto (antes de re-guardar una busqueda nueva). */
+export async function eliminarOfertasDeProducto(
+  idProductoLista: number
+): Promise<number> {
+  const rs = await run(
+    `DELETE FROM oferta WHERE id_producto_lista = @idProductoLista`,
+    { idProductoLista }
+  );
+  return filasAfectadas(rs);
+}
+
+/**
+ * Borra todas las ofertas cuya `fecha_fin` ya paso (`ahora` en ISO).
+ * Solo toca filas con fecha_fin no nula y anterior a `ahora`.
+ */
+export async function eliminarOfertasVencidas(ahora: string): Promise<number> {
+  const rs = await run(
+    `DELETE FROM oferta WHERE fecha_fin IS NOT NULL AND fecha_fin < @ahora`,
+    { ahora }
+  );
+  return filasAfectadas(rs);
 }

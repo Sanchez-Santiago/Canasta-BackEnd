@@ -8,6 +8,7 @@ import {
   obtenerRolEnGrupo,
 } from "./productoLista.model";
 import { obtenerPermisosSobreLista } from "../lista/lista.model";
+import { sincronizarOfertasDeProducto } from "../oferta/oferta.service";
 import type {
   CrearProductoListaBody,
   ActualizarProductoListaBody,
@@ -57,18 +58,38 @@ function puedeEliminarItem(
   return false;
 }
 
-/** Crea si la lista existe y pertenezco. */
+/** Crea si la lista existe y pertenezco. Despues busca y guarda sus ofertas. */
 export async function crearProductoListaService(
   idUsuario: number,
   idLista: number,
   datos: CrearProductoListaBody
-): Promise<{ producto: ProductoListaRespuesta }> {
+): Promise<{
+  producto: ProductoListaRespuesta;
+  ofertas: { guardadas: number; errores: string[]; queryUsada: string };
+}> {
   const p = await obtenerPermisosSobreLista(idUsuario, idLista);
   if (!p.existe) throw new ProductoListaError("Lista no encontrada", 404);
   if (!p.pertenece) throw new ProductoListaError("No perteneces al grupo de esta lista", 403);
   const creado = await crearProductoLista(idLista, idUsuario, datos as any);
   if (!creado) throw new ProductoListaError("No se pudo crear el producto", 500);
-  return { producto: aItemRespuesta(creado) };
+
+  // Reutiliza el modulo de ofertas: busca en vivo y guarda las encontradas.
+  // Si la busqueda falla, el producto ya esta creado: no se revierte.
+  let ofertas = { guardadas: 0, errores: [] as string[], queryUsada: creado.nombre };
+  try {
+    const r = await sincronizarOfertasDeProducto(creado.id_producto_lista);
+    ofertas = {
+      guardadas: r.guardadas,
+      errores: r.errores,
+      queryUsada: r.queryUsada,
+    };
+  } catch (err) {
+    ofertas.errores = [
+      `No se pudieron buscar ofertas: ${String((err as Error).message).slice(0, 120)}`,
+    ];
+  }
+
+  return { producto: aItemRespuesta(creado), ofertas };
 }
 
 /** Items solo si pertenezco. */

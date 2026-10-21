@@ -441,49 +441,124 @@ Fallo: `403 { "ok": false, "error": "No tienes permisos para editar este movimie
 
 Sin body. Devuelve `200 { "ok": true, "data": { "eliminado": true } }`.
 Fallo: `403 { "ok": false, "error": "No tienes permisos para eliminar este movimiento" }`.
-## Ofertas (filtros `?vigentes=true&localidad=X&provincia=Y`)
+## Ofertas (catalogo scrapeado + buscador en vivo)
 
-### GET /productos-lista/:idProductoLista/ofertas 🔒
+La tabla `oferta` guarda ofertas scrapeadas o cargadas a mano. `id_producto_lista` es **nullable**:
+`NULL` = oferta del **catalogo global** (la que devuelve el buscador); con valor = **guardada desde un producto**, y de ese vinculo salen el grupo, el admin y el creador. El buscador consulta las webs en vivo y **no persiste nada**.
 
-Params: `:idProductoLista`. Query opcionales: `?vigentes=true`, `?localidad=Cordoba`, `?provincia=Cordoba` (ej. `/productos-lista/1/ofertas?vigentes=true&localidad=Cordoba`). Devuelve `200`:
+El sistema **elimina solo** las ofertas vencidas: barrido al arrancar el server + `DELETE /ofertas/vencidas`.
+
+### GET /ofertas/buscar 🔒
+
+Buscador **en vivo**: consulta Carrefour, Dia, Jumbo, MasOnline (API VTEX) y Promofy en paralelo. **No guarda nada** en la base. Descarta las ofertas cuya `fecha_fin` ya paso.
+
+Query (solo `producto` es obligatorio):
+
+| Param | Tipo | Default | Descripcion |
+|---|---|---|---|
+| `producto` | texto 2–100 | — | Termino libre (ej. `leche`) |
+| `limite` | int 1–50 | `10` | Maximo de resultados |
+| `mercados` | CSV | todas | `Carrefour,Dia,Jumbo,MasOnline,Promofy` |
+| `categoria` | texto | — | Filtra por categoria/ruta (parcial) |
+| `localidad` / `provincia` | texto | — | Si ninguna fuente lo informa, se ignora y avisa |
+| `min_desc` | 0–100 | — | Descuento minimo (%) |
+| `min_precio` / `max_precio` | numero | — | Rango de precio de oferta (pesos) |
+| `orden` | `1`..`4` | `4` | 1 descuento, 2 precio asc, 3 precio desc, 4 relevancia |
+| `exacto` | bool | `false` | Exige la frase completa contigua |
+| `parecidos` | bool | `false` | Desactiva el filtro estricto (incluye negados/derivados) |
+| `agotados` | bool | `false` | Incluye productos sin stock |
+| `solo_ofertas` | bool | `false` | Solo con descuento |
+
+Ejemplo: `/ofertas/buscar?producto=leche&limite=3&orden=2`.
+
+Devuelve `200`:
 
 ```json
-{ "ok": true, "data": { "ofertas": [{ "id_oferta": 1, "id_producto_lista": 1, "nombre_comercio": "Super Ahorro", "ubicacion": null, "localidad": "Cordoba", "provincia": null, "latitud": null, "longitud": null, "fecha_inicio": "2026-10-01", "fecha_fin": "2026-12-31", "porcentaje_descuento": 20, "precio_original": null, "precio_oferta": 640, "descripcion": null, "fecha_creacion": "2026-10-09 22:39:23" }] } }
+{ "ok": true, "data": { "ofertas": [{ "id": 0, "fuente": "Carrefour", "comercio": "Carrefour", "producto": "Leche Entera La Serenisima 1 L", "url": "https://www.carrefour.com.ar/...", "producto_id": "123", "precio_lista_pesos": 1200, "precio_oferta_pesos": 1020, "descuento_porc": 15, "ean": "7790742123404", "marca": "La Serenisima", "categoria": "Leches", "categoria_ruta": ["Almacen", "Lacteos", "Leches"], "detalle": null, "precio_unidad": 1020, "unidad_medida": "L", "imagen_url": "https://...", "stock": 99999, "disponible": true, "ubicacion": null, "localidad": null, "provincia": null, "fecha_inicio": null, "fecha_fin": null, "cuotas": ["3 cuotas sin interes"], "reintegro": null, "promos": null, "tipo_promo": null, "fecha_captura": "2026-10-20T19:03:30.000Z", "creado_en": "...", "actualizado_en": "..." }], "comparativa": [{ "ean": "7790742123404", "producto": "...", "ofertas": [{ "mercado": "Carrefour", "comercio": "Carrefour", "precio": 1020, "url": "..." }], "diferenciaPct": 12.5 }], "brutas": 82, "fuentes": ["Carrefour", "Dia", "Jumbo", "MasOnline", "Promofy"], "errores": ["Dia: sin respuesta"], "ms": 1886, "agotadas": 6, "parecidos": 43, "avisoLocalidad": false, "queryUsada": "leche", "ampliada": false } }
 ```
 
-### POST /productos-lista/:idProductoLista/ofertas 🔒
+- `id` viene en `0` porque la oferta no esta guardada.
+- `comparativa`: grupos de EAN presentes en 2+ cadenas (para comparar precios).
+- `parecidos`/`agotadas`: descartadas por el filtro estricto / falta de stock.
+- `ampliada` + `queryUsada`: si no hubo resultados con la frase completa, se reintenta con la primera palabra significativa.
+- Fallo de validacion: `400 { "ok": false, "error": "Datos inválidos", "detalles": [...] }`.
 
-Recibe body, ejemplo:
+### GET /ofertas 🔒
+
+Listado del catalogo guardado. Query opcional: `fuente`, `comercio`, `ean`, `marca`, `categoria`, `producto` (todos parciales), `localidad`, `provincia`, `id_producto_lista` (ofertas de un producto), `vigentes=true` (sin fin o fin futuro), `disponible=true|false`, `limite` (1–200, default 50), `offset` (default 0).
 
 ```json
-{ "nombre_comercio": "Super Ahorro", "ubicacion": "Av. Colon 1200", "localidad": "Cordoba", "provincia": "Cordoba", "latitud": -31.4167, "longitud": -64.1833, "fecha_inicio": "2026-10-01", "fecha_fin": "2026-12-31", "porcentaje_descuento": 20, "precio_original": 800, "precio_oferta": 640, "descripcion": "20% en lacteos" }
+{ "ok": true, "data": { "ofertas": [{ "id": 1, "fuente": "Carrefour", "producto": "...", "...": "..." }], "total": 1 } }
 ```
 
-- Requeridos: `nombre_comercio` (2–100), `fecha_inicio`, `fecha_fin` (con `fin > inicio`).
-- Opcionales: `ubicacion` (≤200), `localidad`/`provincia` (≤100), `latitud` (−90..90), `longitud` (−180..180), `porcentaje_descuento` (0–100), `precio_original`/`precio_oferta` (int ≥ 0), `descripcion` (≤250).
+### POST /ofertas 🔒
 
-Devuelve `201 { ok:true, data:{ oferta:{...} } }`.
+Body, ejemplo minimo:
+
+```json
+{ "fuente": "Carrefour", "producto": "Azucar Comun 1 kg", "url": "https://www.carrefour.com.ar/...", "ean": "7791720048726", "marca": "Bulnez", "precio_lista_pesos": 1350, "precio_oferta_pesos": 1080, "descuento_porc": 20, "categoria": "Azucar", "categoria_ruta": ["Almacen", "Azucar"], "unidad_medida": "kg", "precio_unidad": 1080, "stock": 50, "disponible": true, "fecha_inicio": "2026-10-01", "fecha_fin": "2026-12-31", "cuotas": ["3 cuotas sin interes"], "reintegro": "25%", "promos": ["Tarjeta Carrefour 15%"], "tipo_promo": "promocion" }
+```
+
+- Requeridos: `fuente` (≤60), `producto` (2–300), `url` (URL valida).
+- Opcionales: `comercio` (≤120), `producto_id` (≤120), precios (`≥ 0`), `descuento_porc` (0–100), `ean` (solo digitos), `marca`, `categoria`, `categoria_ruta` (array de strings), `detalle` (≤1000), `precio_unidad` (≥ 0), `unidad_medida` (`kg`|`L`), `imagen_url`, `stock` (int ≥ 0), `disponible` (bool, default `true`), `ubicacion`/`localidad`/`provincia`, `fecha_inicio`/`fecha_fin` (ISO; si vienen ambas, `fin > inicio`), `cuotas` (array), `reintegro`, `promos` (array), `tipo_promo`, `fecha_captura` (default: ahora), `id_producto_lista` (liga la oferta a un producto; omitir = catalogo global).
+- Los arrays (`categoria_ruta`, `cuotas`, `promos`) se guardan como JSON en TEXT y se devuelven ya parseados.
+
+Devuelve `201 { ok:true, data:{ oferta:{...} } }` (misma forma que en el buscador, con `id` real).
 Fallo fechas: `400 { "ok": false, "error": "Datos inválidos", "detalles": [{ "path": ["fecha_fin"], "message": "La fecha de fin debe ser posterior a la de inicio" }] }`.
-
-### GET /listas/:idLista/ofertas 🔒
-
-Params: `:idLista`. Mismos filtros y forma que el anterior (todas las ofertas de la lista, para comparar precios).
 
 ### GET /ofertas/:idOferta 🔒
 
-Params: `:idOferta`. Devuelve `200 { ok:true, data:{ oferta:{...} } }` (misma forma).
+Params: `:idOferta` (entero positivo). Devuelve `200 { ok:true, data:{ oferta:{...} } }`.
 Fallo: `404 { "ok": false, "error": "Oferta no encontrada" }`.
 
 ### PUT /ofertas/:idOferta 🔒
 
-Recibe body parcial (cualquier miembro; valida `fin > inicio` contra la fila), ejemplo: `{ "porcentaje_descuento": 25, "precio_oferta": 600 }`.
+Body parcial (los mismos campos del POST). Valida `fin > inicio` contra la fila actual. Ejemplo: `{ "precio_oferta_pesos": 999 }`.
 Devuelve `200 { ok:true, data:{ oferta:{...} } }`.
 Fallo fechas: `400 { "ok": false, "error": "La fecha de fin debe ser posterior a la de inicio" }`.
 
 ### DELETE /ofertas/:idOferta 🔒
 
-Sin body. Devuelve `200 { "ok": true, "data": { "eliminado": true } }`.
-Fallo: `403 { "ok": false, "error": "Solo el administrador puede eliminar ofertas" }`.
+Sin body. Permisos: **admin del grupo** de la lista, **creador de la lista** o **creador del producto**.
+
+Devuelve `200 { "ok": true, "data": { "eliminado": true } }`.
+
+Fallos:
+- `404 { "ok": false, "error": "Oferta no encontrada" }`.
+- `403 { "ok": false, "error": "No tienes permisos para eliminar esta oferta" }`.
+- `403` si la oferta es del **catalogo global** (`id_producto_lista` NULL): solo el sistema la elimina.
+
+### DELETE /ofertas/vencidas 🔒
+
+Limpieza manual: borra todas las ofertas con `fecha_fin` ya pasada. Devuelve `200 { "ok": true, "data": { "eliminadas": 12 } }`.
+
+El sistema tambien ejecuta este barrido **automaticamente al arrancar** el server.
+
+### GET /productos-lista/:idProductoLista/ofertas 🔒
+
+Ofertas **guardadas** de un producto, ordenadas por precio de oferta ascendente.
+
+```json
+{ "ok": true, "data": { "ofertas": [{ "id": 5, "id_producto_lista": 1, "...": "..." }], "total": 3 } }
+```
+
+Requiere pertenecer al grupo. Fallos: `404` (producto no existe), `403` (no perteneces al grupo).
+
+### POST /productos-lista/:idProductoLista/ofertas 🔒
+
+Reutiliza el buscador en vivo: busca por el **nombre del producto** (o por el campo `producto` del body si se envia), y guarda todas las que pasan el filtro estricto, ligadas al producto.
+
+Body (opcional): `{ "producto": "leche entera 1 l" }`.
+
+Antes de guardar **borra las ofertas previas** del producto (no acumula duplicados). Si el producto tiene `codigo_producto`, prioriza las que coinciden por EAN.
+
+```json
+{ "ok": true, "data": { "id_producto_lista": 1, "guardadas": 8, "eliminadas_previas": 0, "brutas": 82, "errores": [], "queryUsada": "leche entera 1 l", "ampliada": false, "ms": 1900 } }
+```
+
+Fallo si la busqueda revienta: `500`. Una fuente caida no frena el guardado (queda en `errores`).
+
+> Al crear un producto (`POST /listas/:idLista/productos`) este paso se ejecuta **automaticamente**: la respuesta incluye `producto` + `ofertas` con lo guardado.
 
 ## Invitaciones (`pendiente|aceptada|rechazada`)
 

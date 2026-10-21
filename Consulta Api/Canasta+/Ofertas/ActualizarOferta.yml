@@ -12,8 +12,8 @@ http:
     type: json
     data: |-
       {
-        "porcentaje_descuento": 25,
-        "precio_oferta": 600
+        "precio_oferta_pesos": 999,
+        "descuento_porc": 26
       }
   auth: inherit
 settings:
@@ -23,4 +23,6 @@ settings:
   maxRedirects: 5
 docs: |-
   # PUT `/ofertas/:idOferta` (protegida)
-  Edita una oferta. Cualquier miembro del grupo puede modificarla.
+
+  Edita una oferta (body parcial, mismos campos del POST).
+  Valida `fin > inicio` contra la fila actual. Devuelve `200`.

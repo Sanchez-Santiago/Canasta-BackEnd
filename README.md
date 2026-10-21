@@ -175,13 +175,31 @@ Roles: `administrador | miembro`. El personal **no se edita ni elimina**.
 | GET | `/grupos/:idGrupo/movimientos/resumen` | protegida | Ingresos, gastos, balance + cantidad |
 | GET / PUT / DELETE | `/movimientos/:idMovimiento` | protegida | Ver (miembro); editar/borrar (creador o admin) |
 
-### Ofertas — filtros `?vigentes=true&localidad=X&provincia=Y`
+### Ofertas — catálogo scrapeado + buscador en vivo
 
 | Método | Ruta | Auth | Qué hace |
 |---|---|---|---|
-| GET / POST | `/productos-lista/:idProductoLista/ofertas` | protegida | Listar con filtros / crear (miembro) |
-| GET | `/listas/:idLista/ofertas` | protegida | Todas las de la lista (comparar precios) |
-| GET / PUT / DELETE | `/ofertas/:idOferta…` | protegida | Ver y editar: **miembro**; borrar: **solo admin** |
+| GET | `/ofertas/buscar?producto=…` | protegida | **Buscador en vivo** (Carrefour, Día, Jumbo, MasOnline, Promofy). No guarda nada |
+| GET | `/ofertas` | protegida | Listado del catálogo guardado, con filtros (`?vigentes=true&id_producto_lista=…`) |
+| POST | `/ofertas` | protegida | Alta manual (requiere `fuente`, `producto`, `url`) |
+| GET / PUT | `/ofertas/:idOferta` | protegida | Ver y editar |
+| DELETE | `/ofertas/:idOferta` | protegida | Eliminar (admin del grupo, creador de la lista o del producto; el catálogo global solo lo borra el sistema) |
+| DELETE | `/ofertas/vencidas` | protegida | Limpieza manual de vencidas (el sistema también barre al arrancar) |
+| GET | `/productos-lista/:idProductoLista/ofertas` | protegida | Ofertas guardadas del producto |
+| POST | `/productos-lista/:idProductoLista/ofertas` | protegida | Re-buscar en vivo y guardar las ofertas del producto |
+
+Al crear un producto (`POST /listas/:idLista/productos`) se busca y guarda automáticamente: la respuesta trae `producto` + `ofertas`.
+
+**Filtro estricto del buscador** (default). El término debe aparecer como palabra completa y, además:
+
+| Regla | Ejemplo descartado |
+|---|---|
+| Precedido por conector/negador (`sin`, `de`, `con`, `sabor`, …) | `Crema de leche` al buscar `leche` |
+| Cabeza de una variante (`chocolatada`, `saborizada`, `rellena`, … por raíz, tolera typos) | `Leche Chocolatada` al buscar `leche` |
+| Categoría no consumible sin el término al inicio | `Cafetera … Leche 15bar` al buscar `leche` |
+| Sin stock (*salvo `agotados=true`*) | productos discontinuados |
+
+Se conserva si el término encabeza el nombre o si la categoría arranca con él. `parecidos=true` desactiva todo el filtro.
 
 ### Invitaciones y Notificaciones
 
@@ -201,7 +219,7 @@ Roles: `administrador | miembro`. El personal **no se edita ni elimina**.
 - **productoLista**: contexto `producto→lista→grupo`; editar miembros, borrar creadores/admin.
 - **lista.calculos**: `round(precio×cantidad)` solo con precio, centavos→pesos.
 - **movimiento**: `GROUP BY tipo` + `construirResumen` (balance); editar/borrar creador/admin.
-- **oferta**: contexto reutilizado del item; borrar solo admin; parcial valida `fin > inicio`.
+- **oferta**: catálogo con `id_producto_lista` nullable (NULL = global; con valor = del producto, de ahí salen grupo/admin/creador); arrays `categoria_ruta`/`cuotas`/`promos` en JSON-TEXT; el buscador va a las fuentes en vivo y filtra vencidas; al crear un producto se auto-sincronizan sus ofertas; las vencidas las borra el sistema (barrido al arrancar + endpoint).
 - **invitacion**: email→id, anti-duplicada; aceptada inserta miembro **antes** de marcar.
 - **notificacion**: tablón por grupo, sin update.
 

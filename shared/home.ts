@@ -29,9 +29,9 @@ function reglasClave(): string[] {
   return [
     "Cada usuario tiene <strong>1 grupo personal</strong> automatico (no se edita ni elimina) y 0..N grupales.",
     "Dinero en <strong>centavos</strong> (entero) y fechas en <strong>TEXT ISO</strong>.",
-    "Editar producto u oferta: <strong>cualquier miembro</strong>; eliminarlos: creadores o admin.",
+    "Editar producto: <strong>cualquier miembro</strong>; eliminarlo: creadores o admin.",
     "Listas y movimientos: editar/eliminar solo <strong>creador o admin</strong>.",
-    "Ofertas: eliminar <strong>solo admin</strong> (la tabla no registra creador).",
+    "Ofertas: catalogo global + ofertas por producto. El buscador no guarda nada; al crear un producto se buscan y guardan sus ofertas. Eliminar: admin del grupo, creador de la lista o del producto (el global solo lo borra el sistema). Las vencidas las limpia el backend.",
     "Invitar: <strong>solo admin</strong> y por email; aceptar suma como miembro.",
     "Notificaciones: <strong>tablon sin edicion</strong>; publica y borra el admin.",
   ];

@@ -125,14 +125,14 @@ export async function actualizarProductoLista(
   return obtenerProductoListaPorId(idProductoLista);
 }
 
-/** DELETE (ofertas caen por CASCADE). */
+/** DELETE. */
 export async function eliminarProductoLista(idProductoLista: number): Promise<boolean> {
   const sql = `DELETE FROM producto_lista WHERE id_producto_lista = @idProductoLista`;
   const rs = await run(sql, { idProductoLista });
   return filasAfectadas(rs) > 0;
 }
 
-/** Item + grupo y creador de su lista (permisos y ofertas). */
+/** Item + grupo y creador de su lista (permisos). */
 export async function obtenerItemConContexto(idProductoLista: number): Promise<{
   item: ProductoListaDB | null;
   idLista: number | null;

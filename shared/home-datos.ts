@@ -272,45 +272,71 @@ export function getDocumentacionEndpoints(): GrupoEndpoints[] {
       ],
     },
     {
-      titulo: "Ofertas - descuentos por producto",
+      titulo: "Ofertas - catalogo y buscador",
       icono: "🏷️",
-      descripcion: "Descuentos y comercios asociados a productos, con filtros.",
+      descripcion:
+        "Catalogo de ofertas scrapeadas (CRUD) y buscador en vivo por termino libre.",
       endpoints: [
         {
           metodo: "GET",
-          ruta: "/productos-lista/:idProductoLista/ofertas",
+          ruta: "/ofertas/buscar",
           auth: "protegida",
-          descripcion: "Ofertas del producto. Filtros ?vigentes=true&localidad=X&provincia=Y.",
-        },
-        {
-          metodo: "POST",
-          ruta: "/productos-lista/:idProductoLista/ofertas",
-          auth: "protegida",
-          descripcion: "Asocia oferta/descuento a un producto. Cualquier miembro.",
+          descripcion:
+            "Buscador EN VIVO (Carrefour, Dia, Jumbo, MasOnline, Promofy). No guarda nada. Query: ?producto=leche&limite=10&mercados=Carrefour,Dia&categoria=lacteos&min_desc=10&min_precio=100&max_precio=5000&orden=1&exacto=true&parecidos=false&agotados=false&solo_ofertas=true. Descarta ofertas vencidas.",
         },
         {
           metodo: "GET",
-          ruta: "/listas/:idLista/ofertas",
+          ruta: "/ofertas",
           auth: "protegida",
-          descripcion: "Todas las ofertas de la lista. Mismos filtros.",
+          descripcion:
+            "Listado del catalogo guardado. Filtros ?fuente=&comercio=&ean=&marca=&categoria=&producto=&localidad=&provincia=&id_producto_lista=&vigentes=true&disponible=true&limite=50&offset=0. Ordena por fin de vigencia.",
+        },
+        {
+          metodo: "POST",
+          ruta: "/ofertas",
+          auth: "protegida",
+          descripcion:
+            "Alta manual de oferta. Requeridos: fuente, producto, url. `id_producto_lista` opcional (liga la oferta a un producto).",
         },
         {
           metodo: "GET",
           ruta: "/ofertas/:idOferta",
           auth: "protegida",
-          descripcion: "Detalle de la oferta. Solo miembros de su grupo.",
+          descripcion: "Detalle de una oferta del catalogo.",
         },
         {
           metodo: "PUT",
           ruta: "/ofertas/:idOferta",
           auth: "protegida",
-          descripcion: "Edita oferta. Cualquier miembro puede modificarla.",
+          descripcion: "Edita una oferta (parcial). Valida fin > inicio.",
         },
         {
           metodo: "DELETE",
           ruta: "/ofertas/:idOferta",
           auth: "protegida",
-          descripcion: "Elimina oferta. Solo administrador del grupo.",
+          descripcion:
+            "Elimina una oferta de un producto: admin del grupo, creador de la lista o del producto. El catalogo global (id_producto_lista NULL) solo lo borra el sistema.",
+        },
+        {
+          metodo: "DELETE",
+          ruta: "/ofertas/vencidas",
+          auth: "protegida",
+          descripcion:
+            "Limpieza manual de ofertas vencidas (fecha_fin pasada). El sistema tambien barre al arrancar el server.",
+        },
+        {
+          metodo: "GET",
+          ruta: "/productos-lista/:idProductoLista/ofertas",
+          auth: "protegida",
+          descripcion:
+            "Ofertas guardadas de un producto, ordenadas por precio de oferta. Requiere pertenecer al grupo.",
+        },
+        {
+          metodo: "POST",
+          ruta: "/productos-lista/:idProductoLista/ofertas",
+          auth: "protegida",
+          descripcion:
+            "Reutiliza el buscador en vivo por el nombre del producto y guarda las ofertas encontradas (body opcional: { producto }). Reemplaza las previas del producto.",
         },
       ],
     },
