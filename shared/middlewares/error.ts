@@ -1,6 +1,7 @@
 // Traduce errores a JSON { ok:false, error }. Solo loguea 5xx.
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
+import { logger } from "../logger";
 
 /** ZodError -> 400 con detalles; resto segun status. */
 export function errorMiddleware(
@@ -28,7 +29,7 @@ export function errorMiddleware(
       : (err as any)?.message ?? "Error inesperado";
 
   if (status >= 500) {
-    console.error(err);
+    logger.error({ err, method: req.method, path: req.path }, "Error interno del servidor");
   }
 
   res.status(status).json({

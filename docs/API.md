@@ -688,6 +688,13 @@ Query opcional `?limite=` (1–200, default 50; ej. `/logs?limite=10`). Devuelve
 { "ok": true, "data": { "logs": [{ "fecha": "2026-10-10 13:51:46", "metodo": "GET", "ruta": "/logs", "status": 401, "ms": 1, "idUsuario": null }], "total": 6 } }
 ```
 
+**Notas sobre logging:**
+- El backend usa **Pino** como logger central.
+- **Desarrollo (`NODE_ENV=development`)**: salida legible con `pino-pretty` (banner de arranque, logs de requests y errores formateados).
+- **Producción (`NODE_ENV=production`)**: salida estructurada en **JSON**.
+- Nivel configurable con `LOG_LEVEL` (`fatal|error|warn|info|debug|trace`, default `debug` en dev / `info` en prod).
+- Los requests se loguean en consola/stream y también se guardan en el **historial en memoria** (máximo 200) que expone este endpoint. Los errores `5xx` se loguean con detalle; los `4xx` no generan `logger.error`.
+
 ## Errores globales
 
 ```json

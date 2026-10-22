@@ -21,10 +21,4 @@ export function getDb(): Client {
   return client;
 }
 
-/** Cierra el cliente (apagado o tests). */
-export function closeDb(): void {
-  if (client) {
-    client.close();
-    client = null;
-  }
-}
+
