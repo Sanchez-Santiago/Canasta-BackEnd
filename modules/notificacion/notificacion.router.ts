@@ -1,13 +1,11 @@
-// Rutas del tablon (todas protegidas). Sin PUT: no se editan.
+// Rutas del tablon (todas protegidas). Las crea el sistema; no hay POST.
 import { Router } from "express";
 import { validate } from "../../shared/middlewares/validate";
 import {
-  crearNotificacionBodySchema,
   idNotificacionParamSchema,
   idGrupoParamSchemaNotificaciones,
 } from "./notificacion.scheme";
 import {
-  crearNotificacion,
   obtenerNotificacionesPorGrupo,
   obtenerNotificacion,
   eliminarNotificacion,
@@ -21,12 +19,6 @@ router.get(
   validate({ params: idGrupoParamSchemaNotificaciones }),
 // Listar del grupo.
   obtenerNotificacionesPorGrupo
-);
-router.post(
-  "/grupos/:idGrupo/notificaciones",
-  validate({ params: idGrupoParamSchemaNotificaciones, body: crearNotificacionBodySchema }),
-// Publicar.
-  crearNotificacion
 );
 
 router.get(

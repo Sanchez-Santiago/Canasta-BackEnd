@@ -19,6 +19,9 @@ http:
         "cantidad": 2,
         "precio_estimado_unitario": 800,
         "codigo_producto": "779000100",
+        "unidad_medida": "botella",
+        "marca": "La Serenísima",
+        "categoria": "Lácteos",
         "estado": "pendiente"
       }
   auth: inherit
@@ -35,3 +38,6 @@ docs: |-
   Agrega un producto a la lista. Cualquier miembro del grupo puede crearlo.
   `nombre` y `cantidad` (>0) obligatorios. Precio en centavos (entero >= 0).
   Prioridad: `prioritario` | `esencial` | `secundario` (default secundario).
+  `unidad_medida` (compra) default `unidad`; `marca` y `categoria` opcionales.
+  Tras crear, el backend busca ofertas con nombre+marca+categoria y las guarda:
+  la respuesta trae `producto` + `ofertas`.

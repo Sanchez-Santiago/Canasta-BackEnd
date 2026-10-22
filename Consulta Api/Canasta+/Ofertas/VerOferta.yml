@@ -13,4 +13,6 @@ settings:
   maxRedirects: 5
 docs: |-
   # GET `/ofertas/:idOferta` (protegida)
-  Detalle de una oferta. Solo si perteneces a su grupo. Cambiar el 1 por el ID real.
+
+  Detalle de una oferta del catalogo. Cambiar el 1 por el ID real.
+  Fallo: `404 { "ok": false, "error": "Oferta no encontrada" }`.

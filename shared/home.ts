@@ -29,11 +29,12 @@ function reglasClave(): string[] {
   return [
     "Cada usuario tiene <strong>1 grupo personal</strong> automatico (no se edita ni elimina) y 0..N grupales.",
     "Dinero en <strong>centavos</strong> (entero) y fechas en <strong>TEXT ISO</strong>.",
-    "Editar producto u oferta: <strong>cualquier miembro</strong>; eliminarlos: creadores o admin.",
+    "Editar producto: <strong>cualquier miembro</strong>; eliminarlo: creadores o admin.",
     "Listas y movimientos: editar/eliminar solo <strong>creador o admin</strong>.",
-    "Ofertas: eliminar <strong>solo admin</strong> (la tabla no registra creador).",
+    "Producto de lista: <strong>unidad_medida</strong> (de compra: docena, rollo, kg...), <strong>marca</strong> y <strong>categoria</strong>. Su <code>unidad_medida</code> es distinta de la de oferta (kg|L).",
+    "Ofertas: catalogo global + ofertas por producto. El buscador no guarda nada; al crear un producto se buscan (nombre+marca+categoria) y guardan sus ofertas. Eliminar: admin del grupo, creador de la lista o del producto (el global solo lo borra el sistema). Las vencidas las limpia el backend.",
     "Invitar: <strong>solo admin</strong> y por email; aceptar suma como miembro.",
-    "Notificaciones: <strong>tablon sin edicion</strong>; publica y borra el admin.",
+    "Notificaciones: las genera el <strong>sistema</strong> (producto agregado, oferta encontrada, movimiento, invitación); llegan en vivo por <strong>WebSocket</strong> (<code>ws://.../ws</code>) y quedan en el historial. El admin puede borrarlas.",
   ];
 }
 

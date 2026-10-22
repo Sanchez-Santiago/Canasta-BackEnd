@@ -8,6 +8,8 @@ import {
   obtenerRolEnGrupo,
 } from "./productoLista.model";
 import { obtenerPermisosSobreLista } from "../lista/lista.model";
+import { sincronizarOfertasDeProducto } from "../oferta/oferta.service";
+import { emitirEvento } from "../../shared/eventos/eventos";
 import type {
   CrearProductoListaBody,
   ActualizarProductoListaBody,
@@ -37,6 +39,9 @@ function aItemRespuesta(i: any): ProductoListaRespuesta {
     cantidad: i.cantidad,
     precio_estimado_unitario: i.precio_estimado_unitario ?? null,
     codigo_producto: i.codigo_producto ?? null,
+    unidad_medida: i.unidad_medida ?? "unidad",
+    marca: i.marca ?? null,
+    categoria: i.categoria ?? null,
     estado: i.estado,
     fecha_creacion: i.fecha_creacion,
   };
@@ -57,29 +62,83 @@ function puedeEliminarItem(
   return false;
 }
 
-/** Crea si la lista existe y pertenezco. */
+/** Crea si la lista existe y pertenezco. Despues busca y guarda sus ofertas. */
 export async function crearProductoListaService(
   idUsuario: number,
   idLista: number,
   datos: CrearProductoListaBody
-): Promise<{ producto: ProductoListaRespuesta }> {
+): Promise<{
+  producto: ProductoListaRespuesta;
+  ofertas: { guardadas: number; errores: string[]; queryUsada: string };
+}> {
   const p = await obtenerPermisosSobreLista(idUsuario, idLista);
   if (!p.existe) throw new ProductoListaError("Lista no encontrada", 404);
   if (!p.pertenece) throw new ProductoListaError("No perteneces al grupo de esta lista", 403);
   const creado = await crearProductoLista(idLista, idUsuario, datos as any);
   if (!creado) throw new ProductoListaError("No se pudo crear el producto", 500);
-  return { producto: aItemRespuesta(creado) };
+
+  // Avisa al grupo que se agrego un producto (persiste + push en vivo).
+  const idGrupo = p.idGrupo;
+  if (idGrupo != null) {
+    await emitirEvento({
+      idGrupo,
+      tipo: "producto_agregado",
+      titulo: `Nuevo producto: ${creado.nombre}`,
+      descripcion: creado.descripcion ?? undefined,
+      extra: {
+        id_producto_lista: creado.id_producto_lista,
+        id_lista: idLista,
+        nombre: creado.nombre,
+        cantidad: creado.cantidad,
+      },
+    });
+  }
+
+  // Reutiliza el modulo de ofertas: busca en vivo y guarda las encontradas.
+  // Si la busqueda falla, el producto ya esta creado: no se revierte.
+  let ofertas = { guardadas: 0, errores: [] as string[], queryUsada: creado.nombre };
+  try {
+    const r = await sincronizarOfertasDeProducto(creado.id_producto_lista);
+    ofertas = {
+      guardadas: r.guardadas,
+      errores: r.errores,
+      queryUsada: r.queryUsada,
+    };
+
+    // Si aparecieron ofertas, avisa al grupo con el resumen.
+    if (idGrupo != null && r.guardadas > 0) {
+      await emitirEvento({
+        idGrupo,
+        tipo: "oferta_encontrada",
+        titulo: `${r.guardadas} oferta(s) para ${creado.nombre}`,
+        extra: {
+          id_producto_lista: creado.id_producto_lista,
+          id_lista: idLista,
+          nombre: creado.nombre,
+          ofertas: r.guardadas,
+          queryUsada: r.queryUsada,
+        },
+      });
+    }
+  } catch (err) {
+    ofertas.errores = [
+      `No se pudieron buscar ofertas: ${String((err as Error).message).slice(0, 120)}`,
+    ];
+  }
+
+  return { producto: aItemRespuesta(creado), ofertas };
 }
 
-/** Items solo si pertenezco. */
+/** Items solo si pertenezco (filtros opcionales por marca/categoria/unidad). */
 export async function obtenerProductosPorListaService(
   idUsuario: number,
-  idLista: number
+  idLista: number,
+  filtros: { marca?: string; categoria?: string; unidad_medida?: string } = {}
 ): Promise<{ productos: ProductoListaRespuesta[] }> {
   const p = await obtenerPermisosSobreLista(idUsuario, idLista);
   if (!p.existe) throw new ProductoListaError("Lista no encontrada", 404);
   if (!p.pertenece) throw new ProductoListaError("No perteneces al grupo de esta lista", 403);
-  const items = await obtenerProductosPorLista(idLista);
+  const items = await obtenerProductosPorLista(idLista, filtros);
   return { productos: items.map(aItemRespuesta) };
 }
 
@@ -122,6 +181,20 @@ export async function cambiarEstadoItemService(
   if (!rol) throw new ProductoListaError("No perteneces al grupo de esta lista", 403);
   const actualizado = await actualizarProductoLista(idProductoLista, { estado: datos.estado });
   if (!actualizado) throw new ProductoListaError("No se pudo cambiar el estado", 500);
+
+  // Avisa al grupo del cambio de estado.
+  await emitirEvento({
+    idGrupo: ctx.idGrupo,
+    tipo: "producto_estado",
+    titulo: `${actualizado.nombre}: ${datos.estado}`,
+    extra: {
+      id_producto_lista: idProductoLista,
+      id_lista: actualizado.id_lista,
+      nombre: actualizado.nombre,
+      estado: datos.estado,
+    },
+  });
+
   return { producto: aItemRespuesta(actualizado) };
 }
 

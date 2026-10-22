@@ -1,0 +1,34 @@
+info:
+  name: SincronizarOfertasProducto
+  type: http
+  seq: 8
+http:
+  method: POST
+  url: http://localhost:3000/productos-lista/1/ofertas
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "producto": "leche entera 1 l"
+      }
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # POST `/productos-lista/:idProductoLista/ofertas` (protegida)
+
+  Reutiliza el buscador en vivo: busca por el **nombre del producto** (o por el
+  término `producto` del body si se envía), y **guarda** todas las ofertas que
+  pasan el filtro estricto, ligadas al producto (`id_producto_lista`).
+
+  Antes de guardar **borra las ofertas previas** de ese producto, para no acumular
+  duplicados. Si el producto tiene `codigo_producto`, prioriza las que coinciden por EAN.
+
+  Requiere pertenecer al grupo de la lista. Devuelve el conteo de guardadas y las
+  advertencias en `errores` (ej. fuentes caídas no frenan el guardado).

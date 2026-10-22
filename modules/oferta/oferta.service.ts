@@ -1,20 +1,27 @@
-// Reglas de ofertas: editar cualquiera; borrar solo admin.
+// Reglas de negocio del catalogo de ofertas.
+// La busqueda trabaja EN VIVO (fuentes) y NO toca la base de datos.
 import {
   crearOferta,
-  obtenerOfertasPorProducto,
-  obtenerOfertasPorLista,
+  obtenerOfertaPorId,
   actualizarOferta,
   eliminarOferta,
-  obtenerOfertaConContexto,
-  obtenerRolSobreProducto,
-  type FiltrosOferta,
+  listarOfertas,
+  listarOfertasDeProducto,
+  eliminarOfertasDeProducto,
+  eliminarOfertasVencidas,
 } from "./oferta.model";
-import { obtenerPermisosSobreLista } from "../lista/lista.model";
-import type {
-  CrearOfertaBody,
-  ActualizarOfertaBody,
-  OfertaRespuesta,
+import {
+  aOfertaRespuesta,
+  type CrearOfertaBody,
+  type ActualizarOfertaBody,
+  type ListarOfertasQuery,
+  type BuscarOfertasQuery,
+  type OfertaRespuesta,
 } from "./oferta.scheme";
+import { buscarEnVivo, type ResultadoBusqueda } from "./fuentes/orquestador";
+import type { Filtros, OrdenarPor } from "./fuentes/filtros";
+import { agruparPorEan, type GrupoEan } from "./fuentes/ean";
+import { obtenerItemConContexto, obtenerRolEnGrupo } from "../productoLista/productoLista.model";
 
 /** Error con status para responder desde el controller. */
 export class OfertaError extends Error {
@@ -26,111 +33,383 @@ export class OfertaError extends Error {
   }
 }
 
-// Recorta la fila a lo publico.
-function aOfertaRespuesta(o: any): OfertaRespuesta {
+/** 1..4 -> orden del catalogo. */
+function ordenDesdeOpcion(n?: string): OrdenarPor | undefined {
+  switch (n) {
+    case "1":
+      return "descuento_desc";
+    case "2":
+      return "precio_asc";
+    case "3":
+      return "precio_desc";
+    case "4":
+      return "relevancia";
+    default:
+      return "relevancia";
+  }
+}
+
+/** Query del buscador -> filtros del motor. */
+export function filtrosDesdeBusqueda(q: BuscarOfertasQuery): Filtros {
   return {
-    id_oferta: o.id_oferta,
-    id_producto_lista: o.id_producto_lista,
-    nombre_comercio: o.nombre_comercio,
-    ubicacion: o.ubicacion,
-    localidad: o.localidad,
-    provincia: o.provincia,
-    latitud: o.latitud,
-    longitud: o.longitud,
-    fecha_inicio: o.fecha_inicio,
-    fecha_fin: o.fecha_fin,
-    porcentaje_descuento: o.porcentaje_descuento,
-    precio_original: o.precio_original,
-    precio_oferta: o.precio_oferta,
-    descripcion: o.descripcion,
-    fecha_creacion: o.fecha_creacion,
+    limite: q.limite,
+    minDescuento: q.min_desc,
+    minPrecioPesos: q.min_precio,
+    maxPrecioPesos: q.max_precio,
+    localidad: q.localidad,
+    provincia: q.provincia,
+    mercados: q.mercados
+      ? q.mercados.split(",").map((m) => m.trim()).filter(Boolean)
+      : undefined,
+    categoria: q.categoria,
+    exacto: q.exacto,
+    parecidos: q.parecidos,
+    agotados: q.agotados,
+    soloOfertas: q.solo_ofertas,
+    ordenar: ordenDesdeOpcion(q.orden),
   };
 }
 
-/** Crea si el producto existe y pertenezco. */
+/** Alta. */
 export async function crearOfertaService(
-  idUsuario: number,
-  idProductoLista: number,
   datos: CrearOfertaBody
 ): Promise<{ oferta: OfertaRespuesta }> {
-  const ctx = await obtenerRolSobreProducto(idUsuario, idProductoLista);
-  if (!ctx.existeProducto) throw new OfertaError("Producto no encontrado", 404);
-  if (!ctx.pertenece) throw new OfertaError("No perteneces al grupo de este producto", 403);
-  const creada = await crearOferta(idProductoLista, datos as any);
+  const creada = await crearOferta(datos);
   if (!creada) throw new OfertaError("No se pudo crear la oferta", 500);
   return { oferta: aOfertaRespuesta(creada) };
 }
 
-/** Lista solo si pertenezco (con filtros). */
-export async function obtenerOfertasPorProductoService(
-  idUsuario: number,
-  idProductoLista: number,
-  filtros: FiltrosOferta
-): Promise<{ ofertas: OfertaRespuesta[] }> {
-  const ctx = await obtenerRolSobreProducto(idUsuario, idProductoLista);
-  if (!ctx.existeProducto) throw new OfertaError("Producto no encontrado", 404);
-  if (!ctx.pertenece) throw new OfertaError("No perteneces al grupo de este producto", 403);
-  const items = await obtenerOfertasPorProducto(idProductoLista, filtros);
-  return { ofertas: items.map(aOfertaRespuesta) };
+/** Listado con filtros (DB). */
+export async function listarOfertasService(
+  filtros: ListarOfertasQuery
+): Promise<{ ofertas: OfertaRespuesta[]; total: number }> {
+  const { ofertas, total } = await listarOfertas(filtros);
+  return { ofertas: ofertas.map(aOfertaRespuesta), total };
 }
 
-/** Lista de la lista: 404/403 segun corresponda. */
-export async function obtenerOfertasPorListaService(
-  idUsuario: number,
-  idLista: number,
-  filtros: FiltrosOferta
-): Promise<{ ofertas: OfertaRespuesta[] }> {
-  const p = await obtenerPermisosSobreLista(idUsuario, idLista);
-  if (!p.existe) throw new OfertaError("Lista no encontrada", 404);
-  if (!p.pertenece) throw new OfertaError("No perteneces al grupo de esta lista", 403);
-  const items = await obtenerOfertasPorLista(idLista, filtros);
-  return { ofertas: items.map(aOfertaRespuesta) };
-}
-
-/** Detalle: 404/403 segun corresponda. */
-export async function obtenerOfertaPorIdService(
-  idUsuario: number,
+/** Detalle. */
+export async function obtenerOfertaService(
   idOferta: number
 ): Promise<{ oferta: OfertaRespuesta }> {
-  const ctx = await obtenerOfertaConContexto(idUsuario, idOferta);
-  if (!ctx.existe || !ctx.oferta) throw new OfertaError("Oferta no encontrada", 404);
-  if (!ctx.pertenece) throw new OfertaError("No perteneces al grupo de esta oferta", 403);
-  return { oferta: aOfertaRespuesta(ctx.oferta) };
+  const o = await obtenerOfertaPorId(idOferta);
+  if (!o) throw new OfertaError("Oferta no encontrada", 404);
+  return { oferta: aOfertaRespuesta(o) };
 }
 
-/** Edita cualquiera; valida fin > inicio contra la fila. */
+/** Edicion: valida fin > inicio contra la fila actual. */
 export async function actualizarOfertaService(
-  idUsuario: number,
   idOferta: number,
   datos: ActualizarOfertaBody
 ): Promise<{ oferta: OfertaRespuesta }> {
-  const ctx = await obtenerOfertaConContexto(idUsuario, idOferta);
-  if (!ctx.existe || !ctx.oferta) throw new OfertaError("Oferta no encontrada", 404);
-  if (!ctx.pertenece) throw new OfertaError("No perteneces al grupo de esta oferta", 403);
+  const actual = await obtenerOfertaPorId(idOferta);
+  if (!actual) throw new OfertaError("Oferta no encontrada", 404);
 
-  const inicio = datos.fecha_inicio ?? ctx.oferta.fecha_inicio;
-  const fin = datos.fecha_fin ?? ctx.oferta.fecha_fin;
-  if (fin <= inicio) {
+  const inicio = datos.fecha_inicio ?? actual.fecha_inicio;
+  const fin = datos.fecha_fin ?? actual.fecha_fin;
+  if (inicio && fin && new Date(fin) <= new Date(inicio)) {
     throw new OfertaError("La fecha de fin debe ser posterior a la de inicio", 400);
   }
 
-  const actualizada = await actualizarOferta(idOferta, datos as any);
-  if (!actualizada) throw new OfertaError("No se pudo actualizar la oferta", 500);
-  return { oferta: aOfertaRespuesta(actualizada) };
+  const act = await actualizarOferta(idOferta, datos);
+  if (!act) throw new OfertaError("No se pudo actualizar la oferta", 500);
+  return { oferta: aOfertaRespuesta(act) };
 }
 
-/** Elimina: 403 si no soy admin. */
+/** ERRORES de permiso del borrado manual. */
+function mensajeSinPermiso(): string {
+  return "No tienes permisos para eliminar esta oferta";
+}
+
+/**
+ * Baja manual. Reglas:
+ * - Oferta del catalogo global (id_producto_lista NULL): solo el sistema la borra.
+ * - Oferta de un producto: admin del grupo, creador de la lista o del producto.
+ */
 export async function eliminarOfertaService(
   idUsuario: number,
   idOferta: number
 ): Promise<{ eliminado: boolean }> {
-  const ctx = await obtenerOfertaConContexto(idUsuario, idOferta);
-  if (!ctx.existe || !ctx.oferta) throw new OfertaError("Oferta no encontrada", 404);
-  if (!ctx.pertenece) throw new OfertaError("No perteneces al grupo de esta oferta", 403);
-  if (!ctx.esAdminGrupo) {
-    throw new OfertaError("Solo el administrador puede eliminar ofertas", 403);
+  const oferta = await obtenerOfertaPorId(idOferta);
+  if (!oferta) throw new OfertaError("Oferta no encontrada", 404);
+
+  if (oferta.id_producto_lista == null) {
+    throw new OfertaError(
+      "Solo el sistema puede eliminar ofertas del catálogo global",
+      403
+    );
   }
+
+  const ctx = await obtenerItemConContexto(oferta.id_producto_lista);
+  if (!ctx.item || !ctx.idGrupo) {
+    throw new OfertaError("Oferta no encontrada", 404);
+  }
+  const rol = await obtenerRolEnGrupo(idUsuario, ctx.idGrupo);
+  if (!rol) throw new OfertaError("No perteneces al grupo de esta lista", 403);
+
+  const esAdmin = rol === "administrador";
+  const esCreadorLista = ctx.idUsuarioCreadorLista === idUsuario;
+  const esCreadorProducto = ctx.item.id_usuario_creador === idUsuario;
+  if (!esAdmin && !esCreadorLista && !esCreadorProducto) {
+    throw new OfertaError(mensajeSinPermiso(), 403);
+  }
+
   const ok = await eliminarOferta(idOferta);
-  if (!ok) throw new OfertaError("No se pudo eliminar la oferta", 500);
+  if (!ok) throw new OfertaError("Oferta no encontrada", 404);
   return { eliminado: true };
+}
+
+/** Ofertas guardadas de un producto (chequea pertenencia al grupo). */
+export async function listarOfertasDeProductoService(
+  idUsuario: number,
+  idProductoLista: number
+): Promise<{ ofertas: OfertaRespuesta[]; total: number }> {
+  const ctx = await obtenerItemConContexto(idProductoLista);
+  if (!ctx.item || !ctx.idGrupo) {
+    throw new OfertaError("Producto no encontrado", 404);
+  }
+  const rol = await obtenerRolEnGrupo(idUsuario, ctx.idGrupo);
+  if (!rol) throw new OfertaError("No perteneces al grupo de esta lista", 403);
+
+  const ofertas = await listarOfertasDeProducto(idProductoLista);
+  return { ofertas: ofertas.map(aOfertaRespuesta), total: ofertas.length };
+}
+
+/** Resultado de sincronizar (buscar + guardar) las ofertas de un producto. */
+export type ResultadoSincronizacion = {
+  id_producto_lista: number;
+  guardadas: number;
+  eliminadas_previas: number;
+  brutas: number;
+  errores: string[];
+  queryUsada: string;
+  ampliada: boolean;
+  ms: number;
+};
+
+/**
+ * Arma los terminos de busqueda con lo que el item aporte: nombre + marca +
+ * categoria. Devuelve la lista en orden de prioridad (mas especifico primero)
+ * para ir soltando precision si no hay resultados.
+ */
+export function terminosDeBusqueda(item: {
+  nombre: string;
+  marca?: string | null;
+  categoria?: string | null;
+}): string[] {
+  const nombre = item.nombre.trim();
+  const marca = (item.marca ?? "").trim();
+  const categoria = (item.categoria ?? "").trim();
+  const candidatos = [
+    [nombre, marca, categoria].filter(Boolean).join(" "),
+    [nombre, marca].filter(Boolean).join(" "),
+    nombre,
+  ];
+  // Deduplica conservando el orden.
+  return [...new Set(candidatos.filter((t) => t.length >= 2))];
+}
+
+/**
+ * Busca en vivo por el nombre (y marca/categoria si las hay) del producto y
+ * GUARDA todas las ofertas que pasan el filtro, ligadas al producto.
+ *
+ * Reemplaza las ofertas previas del producto para no acumular duplicados.
+ * Si el termino mas especifico no devuelve nada, reintenta con uno mas amplio.
+ *
+ * @param termino override opcional del termino de busqueda (gana sobre todo).
+ */
+export async function sincronizarOfertasDeProducto(
+  idProductoLista: number,
+  termino?: string
+): Promise<ResultadoSincronizacion> {
+  const ctx = await obtenerItemConContexto(idProductoLista);
+  if (!ctx.item) throw new OfertaError("Producto no encontrado", 404);
+
+  const terminos = termino?.trim()
+    ? [termino.trim()]
+    : terminosDeBusqueda(ctx.item);
+  // terminosDeBusqueda nunca devuelve vacio (el nombre ya tiene >=2 chars),
+  // pero TS no lo sabe: garantizamos un primer termino.
+  const primero = terminos[0] ?? ctx.item.nombre.trim();
+
+  // Prueba de mas especifico a mas amplio y usa el primero con resultados.
+  let r = await buscarEnVivo(primero, {});
+  let query = primero;
+  for (let i = 1; i < terminos.length && r.ofertas.length === 0; i++) {
+    const t = terminos[i];
+    if (!t) continue;
+    r = await buscarEnVivo(t, {});
+    query = t;
+  }
+
+  // Si el producto tiene codigo/EAN, prioriza las ofertas que coincidan.
+  const codigo = (ctx.item.codigo_producto ?? "").trim();
+  const candidatas = codigo
+    ? [
+        ...r.ofertas.filter((o) => (o.ean ?? "").trim() === codigo),
+        ...r.ofertas.filter((o) => (o.ean ?? "").trim() !== codigo),
+      ]
+    : r.ofertas;
+
+  const eliminadasPrevias = await eliminarOfertasDeProducto(idProductoLista);
+
+  let guardadas = 0;
+  const errores = [...r.errores];
+  for (const o of candidatas) {
+    try {
+      await crearOferta(fuenteACuerpo(o, idProductoLista));
+      guardadas++;
+    } catch (err) {
+      // Una oferta invalida no debe frenar al resto.
+      errores.push(`guardado: ${String((err as Error).message).slice(0, 80)}`);
+    }
+  }
+
+  return {
+    id_producto_lista: idProductoLista,
+    guardadas,
+    eliminadas_previas: eliminadasPrevias,
+    brutas: r.brutas,
+    errores,
+    queryUsada: query,
+    ampliada: r.ampliada,
+    ms: r.ms,
+  };
+}
+
+/** Elimina las ofertas vencidas (uso manual o del barrido al arrancar). */
+export async function eliminarVencidasService(): Promise<{ eliminadas: number }> {
+  const ahora = new Date().toISOString();
+  const eliminadas = await eliminarOfertasVencidas(ahora);
+  return { eliminadas };
+}
+
+/** Barrido silencioso al arrancar el server (no lanza si algo falla). */
+export async function barrerOfertasVencidas(): Promise<number> {
+  try {
+    const { eliminadas } = await eliminarVencidasService();
+    return eliminadas;
+  } catch {
+    return 0;
+  }
+}
+
+/** Busqueda en vivo (no persiste nada). */
+export type RespuestaBusqueda = {
+  ofertas: OfertaRespuesta[];
+  comparativa: GrupoEan[];
+  brutas: number;
+  fuentes: string[];
+  errores: string[];
+  ms: number;
+  agotadas: number;
+  parecidos: number;
+  avisoLocalidad: boolean;
+  queryUsada: string;
+  ampliada: boolean;
+};
+
+/** Mapea una oferta cruda de fuente al shape de la tabla (aun sin id). */
+function fuenteARespuesta(
+  o: ResultadoBusqueda["ofertas"][number],
+  idProductoLista: number | null = null
+): OfertaRespuesta {
+  const ahora = new Date().toISOString();
+  return {
+    id: 0,
+    fuente: o.mercado,
+    comercio: o.comercio ?? null,
+    producto: o.producto,
+    url: o.url,
+    producto_id: o.productoId ?? null,
+    precio_lista_pesos: o.precioListaPesos ?? null,
+    precio_oferta_pesos: o.precioOfertaPesos ?? null,
+    descuento_porc: o.descuentoPorc ?? null,
+    ean: o.ean ?? null,
+    marca: o.marca ?? null,
+    categoria: o.categoria ?? null,
+    categoria_ruta: o.categoriaRuta ?? null,
+    detalle: o.detalle ?? null,
+    precio_unidad: o.precioUnidad ?? null,
+    unidad_medida: o.unidadMedida ?? null,
+    imagen_url: o.imagenUrl ?? null,
+    stock: o.stock ?? null,
+    disponible: o.disponible !== false,
+    ubicacion: o.ubicacion ?? null,
+    localidad: o.localidad ?? null,
+    provincia: o.provincia ?? null,
+    fecha_inicio: o.fechaInicio ?? null,
+    fecha_fin: o.fechaFin ?? null,
+    cuotas: o.cuotas ?? null,
+    reintegro: o.reintegro ?? null,
+    promos: o.promos ?? null,
+    tipo_promo: o.tipoPromo ?? null,
+    fecha_captura: o.fecha ?? ahora,
+    creado_en: ahora,
+    actualizado_en: ahora,
+    id_producto_lista: idProductoLista,
+  };
+}
+
+/** Oferta cruda de fuente -> cuerpo de alta (sin `id`). */
+function fuenteACuerpo(
+  o: ResultadoBusqueda["ofertas"][number],
+  idProductoLista: number
+): CrearOfertaBody {
+  const r = fuenteARespuesta(o, idProductoLista);
+  return {
+    fuente: r.fuente,
+    comercio: r.comercio,
+    producto: r.producto,
+    url: r.url,
+    producto_id: r.producto_id,
+    precio_lista_pesos: r.precio_lista_pesos,
+    precio_oferta_pesos: r.precio_oferta_pesos,
+    descuento_porc: r.descuento_porc,
+    ean: r.ean,
+    marca: r.marca,
+    categoria: r.categoria,
+    categoria_ruta: r.categoria_ruta,
+    detalle: r.detalle,
+    precio_unidad: r.precio_unidad,
+    unidad_medida: r.unidad_medida as "kg" | "L" | null,
+    imagen_url: r.imagen_url,
+    stock: r.stock,
+    disponible: r.disponible,
+    ubicacion: r.ubicacion,
+    localidad: r.localidad,
+    provincia: r.provincia,
+    fecha_inicio: r.fecha_inicio,
+    fecha_fin: r.fecha_fin,
+    cuotas: r.cuotas,
+    reintegro: r.reintegro,
+    promos: r.promos,
+    tipo_promo: r.tipo_promo,
+    fecha_captura: r.fecha_captura,
+    id_producto_lista: idProductoLista,
+  } as CrearOfertaBody;
+}
+
+/**
+ * Busca ofertas EN VIVO por termino libre. No guarda nada.
+ * Descarta las ofertas con `fecha_fin` ya vencida.
+ */
+export async function buscarOfertasService(
+  q: BuscarOfertasQuery
+): Promise<RespuestaBusqueda> {
+  const filtros = filtrosDesdeBusqueda(q);
+  const r = await buscarEnVivo(q.producto, filtros);
+
+  return {
+    ofertas: r.ofertas.map(fuenteARespuesta),
+    comparativa: r.comparativa ?? agruparPorEan(r.ofertas),
+    brutas: r.brutas,
+    fuentes: r.fuentes,
+    errores: r.errores,
+    ms: r.ms,
+    agotadas: r.agotadas,
+    parecidos: r.parecidos,
+    avisoLocalidad: r.avisoLocalidad,
+    queryUsada: r.queryUsada,
+    ampliada: r.ampliada,
+  };
 }

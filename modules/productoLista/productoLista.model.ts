@@ -2,7 +2,7 @@
 import { run, getOne, getAll, filasAfectadas } from "../../shared/db.helpers";
 import type { ProductoListaDB } from "./productoLista.scheme";
 
-/** Alta con defaults (secundario/pendiente). */
+/** Alta con defaults (secundario/pendiente/'unidad'). */
 export async function crearProductoLista(
   idLista: number,
   idUsuarioCreador: number,
@@ -13,17 +13,22 @@ export async function crearProductoLista(
     cantidad: number;
     precio_estimado_unitario?: number | null;
     codigo_producto?: string | null;
+    unidad_medida?: string;
+    marca?: string | null;
+    categoria?: string | null;
     estado?: "pendiente" | "comprado" | "omitido";
   }
 ): Promise<ProductoListaDB | undefined> {
   const sql = `
     INSERT INTO producto_lista (
       id_lista, id_usuario_creador, nombre, descripcion,
-      prioridad, cantidad, precio_estimado_unitario, codigo_producto, estado, fecha_creacion
+      prioridad, cantidad, precio_estimado_unitario, codigo_producto,
+      unidad_medida, marca, categoria, estado, fecha_creacion
     )
     VALUES (
       @idLista, @idUsuarioCreador, @nombre, @descripcion,
-      @prioridad, @cantidad, @precioEstimado, @codigoProducto, @estado, datetime('now')
+      @prioridad, @cantidad, @precioEstimado, @codigoProducto,
+      @unidadMedida, @marca, @categoria, @estado, datetime('now')
     )
   `;
   const rs = await run(sql, {
@@ -35,6 +40,9 @@ export async function crearProductoLista(
     cantidad: datos.cantidad,
     precioEstimado: datos.precio_estimado_unitario ?? null,
     codigoProducto: datos.codigo_producto ?? null,
+    unidadMedida: datos.unidad_medida ?? "unidad",
+    marca: datos.marca ?? null,
+    categoria: datos.categoria ?? null,
     estado: datos.estado ?? "pendiente",
   });
   const id = rs.lastInsertRowid;
@@ -42,13 +50,17 @@ export async function crearProductoLista(
   return obtenerProductoListaPorId(Number(id));
 }
 
+/** Columnas del item (evita repetir el SELECT). */
+const COLUMNAS_ITEM = `id_producto_lista, id_lista, id_usuario_creador, nombre, descripcion,
+       prioridad, cantidad, precio_estimado_unitario, codigo_producto,
+       unidad_medida, marca, categoria, estado, fecha_creacion`;
+
 /** Por id, sin chequear pertenencia. */
 export async function obtenerProductoListaPorId(
   idProductoLista: number
 ): Promise<ProductoListaDB | undefined> {
   const sql = `
-    SELECT id_producto_lista, id_lista, id_usuario_creador, nombre, descripcion,
-           prioridad, cantidad, precio_estimado_unitario, codigo_producto, estado, fecha_creacion
+    SELECT ${COLUMNAS_ITEM}
     FROM producto_lista
     WHERE id_producto_lista = @idProductoLista
     LIMIT 1
@@ -56,13 +68,29 @@ export async function obtenerProductoListaPorId(
   return getOne<ProductoListaDB>(sql, { idProductoLista });
 }
 
-/** Items ordenados por prioridad y fecha. */
-export async function obtenerProductosPorLista(idLista: number): Promise<ProductoListaDB[]> {
+/** Items de una lista, con filtros opcionales por marca/categoria/unidad. */
+export async function obtenerProductosPorLista(
+  idLista: number,
+  filtros: { marca?: string; categoria?: string; unidad_medida?: string } = {}
+): Promise<ProductoListaDB[]> {
+  const conds = ["id_lista = @idLista"];
+  const params: Record<string, unknown> = { idLista };
+  if (filtros.marca) {
+    conds.push("marca LIKE @marca");
+    params.marca = `%${filtros.marca}%`;
+  }
+  if (filtros.categoria) {
+    conds.push("categoria LIKE @categoria");
+    params.categoria = `%${filtros.categoria}%`;
+  }
+  if (filtros.unidad_medida) {
+    conds.push("unidad_medida = @unidadMedida");
+    params.unidadMedida = filtros.unidad_medida;
+  }
   const sql = `
-    SELECT id_producto_lista, id_lista, id_usuario_creador, nombre, descripcion,
-           prioridad, cantidad, precio_estimado_unitario, codigo_producto, estado, fecha_creacion
+    SELECT ${COLUMNAS_ITEM}
     FROM producto_lista
-    WHERE id_lista = @idLista
+    WHERE ${conds.join(" AND ")}
     ORDER BY
       CASE prioridad
         WHEN 'prioritario' THEN 0
@@ -73,7 +101,7 @@ export async function obtenerProductosPorLista(idLista: number): Promise<Product
       fecha_creacion ASC,
       id_producto_lista ASC
   `;
-  return getAll<ProductoListaDB>(sql, { idLista });
+  return getAll<ProductoListaDB>(sql, params);
 }
 
 /** UPDATE parcial. */
@@ -86,6 +114,9 @@ export async function actualizarProductoLista(
     cantidad: number;
     precio_estimado_unitario: number | null;
     codigo_producto: string | null;
+    unidad_medida: "unidad" | "kg" | "gramos" | "L" | "ml" | "docena" | "media_docena" | "paquete" | "caja" | "botella" | "lata" | "sobre" | "rollo" | "bolsa" | "m";
+    marca: string | null;
+    categoria: string | null;
     estado: "pendiente" | "comprado" | "omitido";
   }>
 ): Promise<ProductoListaDB | undefined> {
@@ -115,6 +146,18 @@ export async function actualizarProductoLista(
     sets.push("codigo_producto = @codigoProducto");
     params.codigoProducto = datos.codigo_producto;
   }
+  if (datos.unidad_medida !== undefined) {
+    sets.push("unidad_medida = @unidadMedida");
+    params.unidadMedida = datos.unidad_medida;
+  }
+  if (datos.marca !== undefined) {
+    sets.push("marca = @marca");
+    params.marca = datos.marca;
+  }
+  if (datos.categoria !== undefined) {
+    sets.push("categoria = @categoria");
+    params.categoria = datos.categoria;
+  }
   if (datos.estado !== undefined) {
     sets.push("estado = @estado");
     params.estado = datos.estado;
@@ -125,14 +168,14 @@ export async function actualizarProductoLista(
   return obtenerProductoListaPorId(idProductoLista);
 }
 
-/** DELETE (ofertas caen por CASCADE). */
+/** DELETE. */
 export async function eliminarProductoLista(idProductoLista: number): Promise<boolean> {
   const sql = `DELETE FROM producto_lista WHERE id_producto_lista = @idProductoLista`;
   const rs = await run(sql, { idProductoLista });
   return filasAfectadas(rs) > 0;
 }
 
-/** Item + grupo y creador de su lista (permisos y ofertas). */
+/** Item + grupo y creador de su lista (permisos). */
 export async function obtenerItemConContexto(idProductoLista: number): Promise<{
   item: ProductoListaDB | null;
   idLista: number | null;
@@ -141,7 +184,8 @@ export async function obtenerItemConContexto(idProductoLista: number): Promise<{
 }> {
   const sql = `
     SELECT pl.id_producto_lista, pl.id_lista, pl.id_usuario_creador, pl.nombre, pl.descripcion,
-           pl.prioridad, pl.cantidad, pl.precio_estimado_unitario, pl.codigo_producto, pl.estado, pl.fecha_creacion,
+           pl.prioridad, pl.cantidad, pl.precio_estimado_unitario, pl.codigo_producto,
+           pl.unidad_medida, pl.marca, pl.categoria, pl.estado, pl.fecha_creacion,
            l.id_grupo, l.id_usuario_creador AS creador_lista
     FROM producto_lista pl
     INNER JOIN lista l ON l.id_lista = pl.id_lista
@@ -162,6 +206,9 @@ export async function obtenerItemConContexto(idProductoLista: number): Promise<{
     cantidad: row.cantidad,
     precio_estimado_unitario: row.precio_estimado_unitario,
     codigo_producto: row.codigo_producto,
+    unidad_medida: row.unidad_medida,
+    marca: row.marca,
+    categoria: row.categoria,
     estado: row.estado,
     fecha_creacion: row.fecha_creacion,
   };

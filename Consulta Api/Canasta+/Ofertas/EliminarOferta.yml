@@ -13,4 +13,13 @@ settings:
   maxRedirects: 5
 docs: |-
   # DELETE `/ofertas/:idOferta` (protegida)
-  Elimina una oferta. SOLO el administrador del grupo (la tabla no registra creador).
+
+  Elimina una oferta de un producto. Permisos:
+  - **Administrador del grupo** de la lista.
+  - **Creador de la lista**.
+  - **Creador del producto**.
+
+  Las ofertas del **catálogo global** (`id_producto_lista` NULL, las que devuelve el
+  buscador) **solo las elimina el sistema**; un usuario recibe `403`.
+
+  Fallos: `404` si no existe, `403` si no tienes permisos.

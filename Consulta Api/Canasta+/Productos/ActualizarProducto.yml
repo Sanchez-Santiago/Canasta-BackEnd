@@ -16,7 +16,10 @@ http:
         "nombre": "Leche (editada)",
         "cantidad": 3,
         "precio_estimado_unitario": 850,
-        "prioridad": "prioritario"
+        "prioridad": "prioritario",
+        "unidad_medida": "botella",
+        "marca": "La Serenísima",
+        "categoria": "Lácteos"
       }
   auth: inherit
 
@@ -30,3 +33,5 @@ settings:
 docs: |-
   # PUT `/productos-lista/:idProductoLista` (protegida)
   Edita un producto. CUALQUIER miembro del grupo puede modificarlo.
+  Acepta los mismos campos del POST (parcial): `marca`, `categoria` y
+  `unidad_medida` incluidos.

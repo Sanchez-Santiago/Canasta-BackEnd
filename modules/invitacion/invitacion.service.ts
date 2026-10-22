@@ -9,8 +9,9 @@ import {
   agregarMiembro,
   obtenerInvitacionPorId,
 } from "./invitacion.model";
-import { obtenerGrupoConRol } from "../grupo/grupo.model";
+import { obtenerGrupoConRol, obtenerGrupoPorId } from "../grupo/grupo.model";
 import { obtenerUsuarioPorEmail } from "../user/user.model";
+import { emitirEvento } from "../../shared/eventos/eventos";
 import type {
   CrearInvitacionBody,
   ResponderInvitacionBody,
@@ -70,6 +71,22 @@ export async function crearInvitacionService(
 
   const creada = await crearInvitacion(idUsuarioOrigen, destino.id_usuario, idGrupo);
   if (!creada) throw new InvitacionError("No se pudo crear la invitación", 500);
+
+  // Avisa al invitado (canal personal) que tiene una invitacion pendiente.
+  const grupo = await obtenerGrupoPorId(idGrupo);
+  await emitirEvento({
+    idGrupo: null,
+    idUsuarioDestino: destino.id_usuario,
+    tipo: "invitacion_recibida",
+    titulo: `Te invitaron a ${grupo?.nombre ?? "un grupo"}`,
+    descripcion: `Invitación de ${miembro.nombre}`,
+    extra: {
+      id_invitacion: creada.id_invitacion,
+      id_grupo: idGrupo,
+      id_usuario_origen: idUsuarioOrigen,
+    },
+  });
+
   return { invitacion: aInvitacionRespuesta(creada) };
 }
 
@@ -116,6 +133,22 @@ export async function responderInvitacionService(
 
   const actualizada = await responderInvitacion(idInvitacion, datos.estado);
   if (!actualizada) throw new InvitacionError("No se pudo responder la invitación", 500);
+
+  // Avisa al grupo que la invitacion fue respondida.
+  const grupo = await obtenerGrupoPorId(inv.id_grupo);
+  await emitirEvento({
+    idGrupo: inv.id_grupo,
+    tipo: "invitacion_respondida",
+    titulo: `Invitación ${datos.estado} en ${grupo?.nombre ?? "el grupo"}`,
+    descripcion: `${actualizada.nombre_destino ?? "Un usuario"} ${datos.estado} la invitación`,
+    extra: {
+      id_invitacion: idInvitacion,
+      id_grupo: inv.id_grupo,
+      estado: datos.estado,
+      id_usuario_destino: idUsuario,
+    },
+  });
+
   return { invitacion: aInvitacionRespuesta(actualizada) };
 }
 

@@ -1,0 +1,21 @@
+info:
+  name: EliminarVencidas
+  type: http
+  seq: 9
+http:
+  method: DELETE
+  url: http://localhost:3000/ofertas/vencidas
+  auth: inherit
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  # DELETE `/ofertas/vencidas` (protegida)
+
+  Limpieza manual de ofertas vencidas (las que tienen `fecha_fin` ya pasada).
+  Devuelve `{ "eliminadas": N }`.
+
+  El sistema también hace este barrido **automáticamente al arrancar** el server.
+  Ofertas del catálogo global y de productos se eliminan por igual.

@@ -1,11 +1,10 @@
 info:
   name: CrearOferta
   type: http
-  seq: 2
-
+  seq: 3
 http:
   method: POST
-  url: http://localhost:3000/productos-lista/4/ofertas
+  url: http://localhost:3000/ofertas
   headers:
     - name: Content-Type
       value: application/json
@@ -13,30 +12,50 @@ http:
     type: json
     data: |-
       {
-        "nombre_comercio": "Super Ahorro",
-        "ubicacion": "Av. Colon 1200",
+        "fuente": "Carrefour",
+        "comercio": "Carrefour Palermo",
+        "producto": "Azucar Comun Bulnez 1 kg",
+        "url": "https://www.carrefour.com.ar/azucar-comun-bulnez-1-kg-773203/p",
+        "producto_id": "773203",
+        "precio_lista_pesos": 1350,
+        "precio_oferta_pesos": 1080,
+        "descuento_porc": 20,
+        "ean": "7791720048726",
+        "marca": "Bulnez",
+        "categoria": "Azucar",
+        "categoria_ruta": ["Almacen", "Endulzantes", "Azucar"],
+        "precio_unidad": 1080,
+        "unidad_medida": "kg",
+        "imagen_url": "https://www.carrefour.com.ar/img.jpg",
+        "stock": 50,
+        "disponible": true,
         "localidad": "Cordoba",
         "provincia": "Cordoba",
-        "latitud": -31.4167,
-        "longitud": -64.1833,
         "fecha_inicio": "2026-10-01",
         "fecha_fin": "2026-12-31",
-        "porcentaje_descuento": 20,
-        "precio_original": 800,
-        "precio_oferta": 640,
-        "descripcion": "20% de descuento en lacteos"
+        "cuotas": ["3 cuotas sin interes"],
+        "reintegro": "25%",
+        "promos": ["Tarjeta Carrefour 15%"],
+        "tipo_promo": "promocion"
       }
   auth: inherit
-
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
   forwardAuthorizationHeader: true
-
 docs: |-
-  # POST `/productos-lista/:idProductoLista/ofertas` (protegida)
-  Asocia una oferta o descuento a un producto. Cualquier miembro del grupo.
-  Obligatorios: `nombre_comercio`, `fecha_inicio`, `fecha_fin` (fin posterior a inicio).
-  Opcionales: ubicacion, localidad, provincia, latitud, longitud, descuento 0-100, precios en centavos, descripcion.
+  # POST `/ofertas` (protegida)
+
+  Alta manual de una oferta en el catalogo.
+
+  **Obligatorios**: `fuente` (<=60), `producto` (2-300), `url` (URL valida).
+  **Opcionales**: `comercio`, `producto_id`, precios (>= 0), `descuento_porc` (0-100),
+  `ean` (solo digitos), `marca`, `categoria`, `categoria_ruta` (array), `detalle`,
+  `precio_unidad`, `unidad_medida` (`kg`|`L`), `imagen_url`, `stock` (int >= 0),
+  `disponible` (bool, def. true), `ubicacion`/`localidad`/`provincia`,
+  `fecha_inicio`/`fecha_fin` (ISO; si vienen ambas, fin > inicio),
+  `cuotas` (array), `reintegro`, `promos` (array), `tipo_promo`, `fecha_captura`.
+
+  Los arrays se guardan como JSON en TEXT y vuelven ya parseados. Devuelve `201`.

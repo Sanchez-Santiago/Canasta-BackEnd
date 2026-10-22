@@ -9,6 +9,7 @@ import {
 } from "./movimiento.model";
 import { construirResumen } from "./movimiento.finanzas";
 import { obtenerGrupoConRol } from "../grupo/grupo.model";
+import { emitirEvento } from "../../shared/eventos/eventos";
 import type {
   CrearMovimientoBody,
   ActualizarMovimientoBody,
@@ -59,6 +60,21 @@ export async function crearMovimientoService(
     fecha_movimiento: datos.fecha_movimiento,
   });
   if (!creado) throw new MovimientoError("No se pudo crear el movimiento", 500);
+
+  // Avisa al grupo del movimiento nuevo.
+  await emitirEvento({
+    idGrupo,
+    tipo: "movimiento_agregado",
+    titulo: `Movimiento: ${creado.nombre}`,
+    descripcion: creado.descripcion ?? undefined,
+    extra: {
+      id_movimiento: creado.id_movimiento,
+      nombre: creado.nombre,
+      monto: creado.monto,
+      tipo: creado.tipo,
+    },
+  });
+
   return { movimiento: aMovimientoRespuesta(creado) };
 }
 

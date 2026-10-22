@@ -1,62 +1,94 @@
-// Rutas de ofertas (todas protegidas).
+// Rutas del catalogo de ofertas (todas protegidas por el auth global).
 import { Router } from "express";
 import { validate } from "../../shared/middlewares/validate";
 import {
   crearOfertaBodySchema,
   actualizarOfertaBodySchema,
-  ofertasQuerySchema,
+  listarOfertasQuerySchema,
+  buscarOfertasQuerySchema,
   idOfertaParamSchema,
-  idProductoParamSchemaOfertas,
-  idListaParamSchemaOfertas,
+  idProductoListaParamOfertasSchema,
+  sincronizarOfertasBodySchema,
 } from "./oferta.scheme";
 import {
-  crearOferta,
-  obtenerOfertasPorProducto,
-  obtenerOfertasPorLista,
+  buscarOfertas,
+  listarOfertas,
   obtenerOferta,
+  crearOferta,
   actualizarOferta,
   eliminarOferta,
+  listarOfertasDeProducto,
+  sincronizarOfertasDeProducto,
+  eliminarVencidas,
 } from "./oferta.controller";
 
 // Router del dominio (montado en index.ts).
 const router = Router();
 
+// /ofertas/buscar y /ofertas/vencidas van ANTES de /ofertas/:idOferta:
+// si no, "buscar"/"vencidas" caen en el param.
+router.get(
+  "/ofertas/buscar",
+  validate({ query: buscarOfertasQuerySchema }),
+  // Busqueda en vivo (no guarda nada).
+  buscarOfertas
+);
+
+router.delete(
+  "/ofertas/vencidas",
+  // Limpieza manual de vencidas (el sistema tambien barre al arrancar).
+  eliminarVencidas
+);
+
 router.get(
   "/productos-lista/:idProductoLista/ofertas",
-  validate({ params: idProductoParamSchemaOfertas, query: ofertasQuerySchema }),
-// Listar del producto.
-  obtenerOfertasPorProducto
+  validate({ params: idProductoListaParamOfertasSchema }),
+  // Ofertas guardadas del producto.
+  listarOfertasDeProducto
 );
+
 router.post(
   "/productos-lista/:idProductoLista/ofertas",
-  validate({ params: idProductoParamSchemaOfertas, body: crearOfertaBodySchema }),
-// Crear en el producto.
+  validate({
+    params: idProductoListaParamOfertasSchema,
+    body: sincronizarOfertasBodySchema,
+  }),
+  // Re-busca en las fuentes y guarda las ofertas del producto.
+  sincronizarOfertasDeProducto
+);
+
+router.get(
+  "/ofertas",
+  validate({ query: listarOfertasQuerySchema }),
+  // Listado con filtros.
+  listarOfertas
+);
+
+router.post(
+  "/ofertas",
+  validate({ body: crearOfertaBodySchema }),
+  // Alta.
   crearOferta
 );
 
 router.get(
-  "/listas/:idLista/ofertas",
-  validate({ params: idListaParamSchemaOfertas, query: ofertasQuerySchema }),
-// Listar de la lista.
-  obtenerOfertasPorLista
-);
-
-router.get(
   "/ofertas/:idOferta",
   validate({ params: idOfertaParamSchema }),
-// Detalle.
+  // Detalle.
   obtenerOferta
 );
+
 router.put(
   "/ofertas/:idOferta",
   validate({ params: idOfertaParamSchema, body: actualizarOfertaBodySchema }),
-// Editar.
+  // Editar.
   actualizarOferta
 );
+
 router.delete(
   "/ofertas/:idOferta",
   validate({ params: idOfertaParamSchema }),
-// Eliminar.
+  // Eliminar.
   eliminarOferta
 );
 

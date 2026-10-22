@@ -348,12 +348,14 @@ Fallo: `403 { "ok": false, "error": "No tienes permisos para eliminar esta lista
 
 ## Productos (`prioritario|esencial|secundario`, `pendiente|comprado|omitido`)
 
+Un item tiene, además, `unidad_medida` (unidad de compra), `marca` y `categoria`. **`unidad_medida` del item no es la de `oferta`**: acá es cómo se compra (`docena`, `rollo`, `kg`…), mientras que en `oferta` es la unidad del precio por unidad (`kg`|`L`).
+
 ### GET /listas/:idLista/productos 🔒
 
-Params: `:idLista`. Devuelve `200` (por prioridad y fecha):
+Params: `:idLista`. Query opcional: `marca`, `categoria` (parciales), `unidad_medida` (exacta). Devuelve `200` (por prioridad y fecha):
 
 ```json
-{ "ok": true, "data": { "productos": [{ "id_producto_lista": 1, "id_lista": 1, "id_usuario_creador": 1, "nombre": "Leche", "descripcion": null, "prioridad": "secundario", "cantidad": 2, "precio_estimado_unitario": 800, "codigo_producto": null, "estado": "pendiente", "fecha_creacion": "2026-10-09 00:46:11" }] } }
+{ "ok": true, "data": { "productos": [{ "id_producto_lista": 1, "id_lista": 1, "id_usuario_creador": 1, "nombre": "Leche", "descripcion": null, "prioridad": "secundario", "cantidad": 2, "precio_estimado_unitario": 800, "codigo_producto": null, "unidad_medida": "sachet", "marca": "La Serenísima", "categoria": "Lácteos", "estado": "pendiente", "fecha_creacion": "2026-10-09 00:46:11" }] } }
 ```
 
 ### POST /listas/:idLista/productos 🔒
@@ -361,13 +363,17 @@ Params: `:idLista`. Devuelve `200` (por prioridad y fecha):
 Recibe body, ejemplo:
 
 ```json
-{ "nombre": "Leche", "descripcion": "Entera 1L", "prioridad": "esencial", "cantidad": 2, "precio_estimado_unitario": 800, "codigo_producto": "779000100", "estado": "pendiente" }
+{ "nombre": "Leche", "descripcion": "Entera 1L", "prioridad": "esencial", "cantidad": 2, "precio_estimado_unitario": 800, "codigo_producto": "779000100", "unidad_medida": "botella", "marca": "La Serenísima", "categoria": "Lácteos", "estado": "pendiente" }
 ```
 
 - Requeridos: `nombre` (2–150), `cantidad` (número > 0).
-- Opcionales: `descripcion` (≤250), `prioridad` (default `secundario`), `precio_estimado_unitario` (int ≥ 0 o `null`), `codigo_producto` (≤50), `estado` (default `pendiente`).
+- Opcionales: `descripcion` (≤250), `prioridad` (default `secundario`), `precio_estimado_unitario` (int ≥ 0 o `null`), `codigo_producto` (≤50), `unidad_medida` (default `unidad`; valores: `unidad`, `kg`, `gramos`, `L`, `ml`, `docena`, `media_docena`, `paquete`, `caja`, `botella`, `lata`, `sobre`, `rollo`, `bolsa`, `m`), `marca` (≤120), `categoria` (≤120), `estado` (default `pendiente`).
 
-Devuelve `201 { ok:true, data:{ producto:{...} } }`.
+**Reutiliza el buscador de ofertas**: busca por `nombre` + `marca` + `categoria` (los que existan) y, si no hay resultados, amplía a `nombre` + `marca` y luego solo `nombre`. Guarda todas las ofertas que pasan el filtro, ligadas al producto. Devuelve:
+
+```json
+{ "ok": true, "data": { "producto": { "...": "..." }, "ofertas": { "guardadas": 10, "errores": [], "queryUsada": "Leche La Serenísima Lácteos" } } }
+```
 
 ### GET /productos-lista/:idProductoLista 🔒
 
@@ -376,7 +382,7 @@ Fallo: `404 { "ok": false, "error": "Producto no encontrado" }`.
 
 ### PUT /productos-lista/:idProductoLista 🔒
 
-Recibe body parcial (cualquier miembro), ejemplo: `{ "nombre": "Leche (editada)", "cantidad": 3, "precio_estimado_unitario": 850, "prioridad": "prioritario" }`.
+Recibe body parcial (cualquier miembro), ejemplo: `{ "nombre": "Leche (editada)", "cantidad": 3, "precio_estimado_unitario": 850, "prioridad": "prioritario", "marca": "La Serenísima", "categoria": "Lácteos", "unidad_medida": "botella" }`.
 Devuelve `200 { ok:true, data:{ producto:{...} } }`.
 
 ### PATCH /productos-lista/:idProductoLista/estado 🔒
@@ -441,49 +447,124 @@ Fallo: `403 { "ok": false, "error": "No tienes permisos para editar este movimie
 
 Sin body. Devuelve `200 { "ok": true, "data": { "eliminado": true } }`.
 Fallo: `403 { "ok": false, "error": "No tienes permisos para eliminar este movimiento" }`.
-## Ofertas (filtros `?vigentes=true&localidad=X&provincia=Y`)
+## Ofertas (catalogo scrapeado + buscador en vivo)
 
-### GET /productos-lista/:idProductoLista/ofertas 🔒
+La tabla `oferta` guarda ofertas scrapeadas o cargadas a mano. `id_producto_lista` es **nullable**:
+`NULL` = oferta del **catalogo global** (la que devuelve el buscador); con valor = **guardada desde un producto**, y de ese vinculo salen el grupo, el admin y el creador. El buscador consulta las webs en vivo y **no persiste nada**.
 
-Params: `:idProductoLista`. Query opcionales: `?vigentes=true`, `?localidad=Cordoba`, `?provincia=Cordoba` (ej. `/productos-lista/1/ofertas?vigentes=true&localidad=Cordoba`). Devuelve `200`:
+El sistema **elimina solo** las ofertas vencidas: barrido al arrancar el server + `DELETE /ofertas/vencidas`.
+
+### GET /ofertas/buscar 🔒
+
+Buscador **en vivo**: consulta Carrefour, Dia, Jumbo, MasOnline (API VTEX) y Promofy en paralelo. **No guarda nada** en la base. Descarta las ofertas cuya `fecha_fin` ya paso.
+
+Query (solo `producto` es obligatorio):
+
+| Param | Tipo | Default | Descripcion |
+|---|---|---|---|
+| `producto` | texto 2–100 | — | Termino libre (ej. `leche`) |
+| `limite` | int 1–50 | `10` | Maximo de resultados |
+| `mercados` | CSV | todas | `Carrefour,Dia,Jumbo,MasOnline,Promofy` |
+| `categoria` | texto | — | Filtra por categoria/ruta (parcial) |
+| `localidad` / `provincia` | texto | — | Si ninguna fuente lo informa, se ignora y avisa |
+| `min_desc` | 0–100 | — | Descuento minimo (%) |
+| `min_precio` / `max_precio` | numero | — | Rango de precio de oferta (pesos) |
+| `orden` | `1`..`4` | `4` | 1 descuento, 2 precio asc, 3 precio desc, 4 relevancia |
+| `exacto` | bool | `false` | Exige la frase completa contigua |
+| `parecidos` | bool | `false` | Desactiva el filtro estricto (incluye negados/derivados) |
+| `agotados` | bool | `false` | Incluye productos sin stock |
+| `solo_ofertas` | bool | `false` | Solo con descuento |
+
+Ejemplo: `/ofertas/buscar?producto=leche&limite=3&orden=2`.
+
+Devuelve `200`:
 
 ```json
-{ "ok": true, "data": { "ofertas": [{ "id_oferta": 1, "id_producto_lista": 1, "nombre_comercio": "Super Ahorro", "ubicacion": null, "localidad": "Cordoba", "provincia": null, "latitud": null, "longitud": null, "fecha_inicio": "2026-10-01", "fecha_fin": "2026-12-31", "porcentaje_descuento": 20, "precio_original": null, "precio_oferta": 640, "descripcion": null, "fecha_creacion": "2026-10-09 22:39:23" }] } }
+{ "ok": true, "data": { "ofertas": [{ "id": 0, "fuente": "Carrefour", "comercio": "Carrefour", "producto": "Leche Entera La Serenisima 1 L", "url": "https://www.carrefour.com.ar/...", "producto_id": "123", "precio_lista_pesos": 1200, "precio_oferta_pesos": 1020, "descuento_porc": 15, "ean": "7790742123404", "marca": "La Serenisima", "categoria": "Leches", "categoria_ruta": ["Almacen", "Lacteos", "Leches"], "detalle": null, "precio_unidad": 1020, "unidad_medida": "L", "imagen_url": "https://...", "stock": 99999, "disponible": true, "ubicacion": null, "localidad": null, "provincia": null, "fecha_inicio": null, "fecha_fin": null, "cuotas": ["3 cuotas sin interes"], "reintegro": null, "promos": null, "tipo_promo": null, "fecha_captura": "2026-10-20T19:03:30.000Z", "creado_en": "...", "actualizado_en": "..." }], "comparativa": [{ "ean": "7790742123404", "producto": "...", "ofertas": [{ "mercado": "Carrefour", "comercio": "Carrefour", "precio": 1020, "url": "..." }], "diferenciaPct": 12.5 }], "brutas": 82, "fuentes": ["Carrefour", "Dia", "Jumbo", "MasOnline", "Promofy"], "errores": ["Dia: sin respuesta"], "ms": 1886, "agotadas": 6, "parecidos": 43, "avisoLocalidad": false, "queryUsada": "leche", "ampliada": false } }
 ```
 
-### POST /productos-lista/:idProductoLista/ofertas 🔒
+- `id` viene en `0` porque la oferta no esta guardada.
+- `comparativa`: grupos de EAN presentes en 2+ cadenas (para comparar precios).
+- `parecidos`/`agotadas`: descartadas por el filtro estricto / falta de stock.
+- `ampliada` + `queryUsada`: si no hubo resultados con la frase completa, se reintenta con la primera palabra significativa.
+- Fallo de validacion: `400 { "ok": false, "error": "Datos inválidos", "detalles": [...] }`.
 
-Recibe body, ejemplo:
+### GET /ofertas 🔒
+
+Listado del catalogo guardado. Query opcional: `fuente`, `comercio`, `ean`, `marca`, `categoria`, `producto` (todos parciales), `localidad`, `provincia`, `id_producto_lista` (ofertas de un producto), `vigentes=true` (sin fin o fin futuro), `disponible=true|false`, `limite` (1–200, default 50), `offset` (default 0).
 
 ```json
-{ "nombre_comercio": "Super Ahorro", "ubicacion": "Av. Colon 1200", "localidad": "Cordoba", "provincia": "Cordoba", "latitud": -31.4167, "longitud": -64.1833, "fecha_inicio": "2026-10-01", "fecha_fin": "2026-12-31", "porcentaje_descuento": 20, "precio_original": 800, "precio_oferta": 640, "descripcion": "20% en lacteos" }
+{ "ok": true, "data": { "ofertas": [{ "id": 1, "fuente": "Carrefour", "producto": "...", "...": "..." }], "total": 1 } }
 ```
 
-- Requeridos: `nombre_comercio` (2–100), `fecha_inicio`, `fecha_fin` (con `fin > inicio`).
-- Opcionales: `ubicacion` (≤200), `localidad`/`provincia` (≤100), `latitud` (−90..90), `longitud` (−180..180), `porcentaje_descuento` (0–100), `precio_original`/`precio_oferta` (int ≥ 0), `descripcion` (≤250).
+### POST /ofertas 🔒
 
-Devuelve `201 { ok:true, data:{ oferta:{...} } }`.
+Body, ejemplo minimo:
+
+```json
+{ "fuente": "Carrefour", "producto": "Azucar Comun 1 kg", "url": "https://www.carrefour.com.ar/...", "ean": "7791720048726", "marca": "Bulnez", "precio_lista_pesos": 1350, "precio_oferta_pesos": 1080, "descuento_porc": 20, "categoria": "Azucar", "categoria_ruta": ["Almacen", "Azucar"], "unidad_medida": "kg", "precio_unidad": 1080, "stock": 50, "disponible": true, "fecha_inicio": "2026-10-01", "fecha_fin": "2026-12-31", "cuotas": ["3 cuotas sin interes"], "reintegro": "25%", "promos": ["Tarjeta Carrefour 15%"], "tipo_promo": "promocion" }
+```
+
+- Requeridos: `fuente` (≤60), `producto` (2–300), `url` (URL valida).
+- Opcionales: `comercio` (≤120), `producto_id` (≤120), precios (`≥ 0`), `descuento_porc` (0–100), `ean` (solo digitos), `marca`, `categoria`, `categoria_ruta` (array de strings), `detalle` (≤1000), `precio_unidad` (≥ 0), `unidad_medida` (`kg`|`L`), `imagen_url`, `stock` (int ≥ 0), `disponible` (bool, default `true`), `ubicacion`/`localidad`/`provincia`, `fecha_inicio`/`fecha_fin` (ISO; si vienen ambas, `fin > inicio`), `cuotas` (array), `reintegro`, `promos` (array), `tipo_promo`, `fecha_captura` (default: ahora), `id_producto_lista` (liga la oferta a un producto; omitir = catalogo global).
+- Los arrays (`categoria_ruta`, `cuotas`, `promos`) se guardan como JSON en TEXT y se devuelven ya parseados.
+
+Devuelve `201 { ok:true, data:{ oferta:{...} } }` (misma forma que en el buscador, con `id` real).
 Fallo fechas: `400 { "ok": false, "error": "Datos inválidos", "detalles": [{ "path": ["fecha_fin"], "message": "La fecha de fin debe ser posterior a la de inicio" }] }`.
-
-### GET /listas/:idLista/ofertas 🔒
-
-Params: `:idLista`. Mismos filtros y forma que el anterior (todas las ofertas de la lista, para comparar precios).
 
 ### GET /ofertas/:idOferta 🔒
 
-Params: `:idOferta`. Devuelve `200 { ok:true, data:{ oferta:{...} } }` (misma forma).
+Params: `:idOferta` (entero positivo). Devuelve `200 { ok:true, data:{ oferta:{...} } }`.
 Fallo: `404 { "ok": false, "error": "Oferta no encontrada" }`.
 
 ### PUT /ofertas/:idOferta 🔒
 
-Recibe body parcial (cualquier miembro; valida `fin > inicio` contra la fila), ejemplo: `{ "porcentaje_descuento": 25, "precio_oferta": 600 }`.
+Body parcial (los mismos campos del POST). Valida `fin > inicio` contra la fila actual. Ejemplo: `{ "precio_oferta_pesos": 999 }`.
 Devuelve `200 { ok:true, data:{ oferta:{...} } }`.
 Fallo fechas: `400 { "ok": false, "error": "La fecha de fin debe ser posterior a la de inicio" }`.
 
 ### DELETE /ofertas/:idOferta 🔒
 
-Sin body. Devuelve `200 { "ok": true, "data": { "eliminado": true } }`.
-Fallo: `403 { "ok": false, "error": "Solo el administrador puede eliminar ofertas" }`.
+Sin body. Permisos: **admin del grupo** de la lista, **creador de la lista** o **creador del producto**.
+
+Devuelve `200 { "ok": true, "data": { "eliminado": true } }`.
+
+Fallos:
+- `404 { "ok": false, "error": "Oferta no encontrada" }`.
+- `403 { "ok": false, "error": "No tienes permisos para eliminar esta oferta" }`.
+- `403` si la oferta es del **catalogo global** (`id_producto_lista` NULL): solo el sistema la elimina.
+
+### DELETE /ofertas/vencidas 🔒
+
+Limpieza manual: borra todas las ofertas con `fecha_fin` ya pasada. Devuelve `200 { "ok": true, "data": { "eliminadas": 12 } }`.
+
+El sistema tambien ejecuta este barrido **automaticamente al arrancar** el server.
+
+### GET /productos-lista/:idProductoLista/ofertas 🔒
+
+Ofertas **guardadas** de un producto, ordenadas por precio de oferta ascendente.
+
+```json
+{ "ok": true, "data": { "ofertas": [{ "id": 5, "id_producto_lista": 1, "...": "..." }], "total": 3 } }
+```
+
+Requiere pertenecer al grupo. Fallos: `404` (producto no existe), `403` (no perteneces al grupo).
+
+### POST /productos-lista/:idProductoLista/ofertas 🔒
+
+Reutiliza el buscador en vivo: busca por el **nombre del producto** (o por el campo `producto` del body si se envia), y guarda todas las que pasan el filtro estricto, ligadas al producto.
+
+Body (opcional): `{ "producto": "leche entera 1 l" }`.
+
+Antes de guardar **borra las ofertas previas** del producto (no acumula duplicados). Si el producto tiene `codigo_producto`, prioriza las que coinciden por EAN.
+
+```json
+{ "ok": true, "data": { "id_producto_lista": 1, "guardadas": 8, "eliminadas_previas": 0, "brutas": 82, "errores": [], "queryUsada": "leche entera 1 l", "ampliada": false, "ms": 1900 } }
+```
+
+Fallo si la busqueda revienta: `500`. Una fuente caida no frena el guardado (queda en `errores`).
+
+> Al crear un producto (`POST /listas/:idLista/productos`) este paso se ejecuta **automaticamente**: la respuesta incluye `producto` + `ofertas` con lo guardado.
 
 ## Invitaciones (`pendiente|aceptada|rechazada`)
 
@@ -530,28 +611,19 @@ Fallos: `403 { "ok": false, "error": "Solo el destinatario puede responder" }`; 
 Sin body (origen o admin, solo pendientes). Devuelve `200 { "ok": true, "data": { "eliminado": true } }`.
 Fallo: `409 { "ok": false, "error": "Solo se pueden cancelar invitaciones pendientes" }`.
 
-## Notificaciones (tablón, sin PUT)
+## Notificaciones (generadas por el sistema)
+
+Las crea **el sistema** (no una persona): producto agregado, cambio de estado, oferta encontrada, movimiento e invitaciones. Se **persisten** (historial del grupo) y además se **empujan en vivo** por WebSocket. No hay `POST`: nadie las crea a mano.
+
+`tipo` es un enum cerrado: `producto_agregado`, `producto_estado`, `oferta_encontrada`, `invitacion_recibida`, `invitacion_respondida`, `movimiento_agregado`.
 
 ### GET /grupos/:idGrupo/notificaciones 🔒
 
 Params: `:idGrupo`. Devuelve `200`:
 
 ```json
-{ "ok": true, "data": { "notificaciones": [{ "id_notificacion": 1, "id_grupo": 11, "tipo": "general", "titulo": "Bienvenidos", "descripcion": "Grupo de prueba", "fecha_creacion": "2026-10-09 22:52:28" }] } }
+{ "ok": true, "data": { "notificaciones": [{ "id_notificacion": 1, "id_grupo": 11, "tipo": "producto_agregado", "titulo": "Nuevo producto: Leche", "descripcion": "Entera 1L", "fecha_creacion": "2026-10-09 22:52:28" }] } }
 ```
-
-### POST /grupos/:idGrupo/notificaciones 🔒
-
-Recibe body (solo admin), ejemplo:
-
-```json
-{ "tipo": "general", "titulo": "Reunión de compras", "descripcion": "Sábado a la mañana" }
-```
-
-- Requeridos: `tipo` (2–50, libre: `grupo|lista|movimiento|oferta|invitacion|general`), `titulo` (2–100). Opcional: `descripcion` (≤250).
-
-Devuelve `201 { ok:true, data:{ notificacion:{...} } }`.
-Fallo: `403 { "ok": false, "error": "Solo el administrador puede gestionar anuncios" }`.
 
 ### GET /notificaciones/:idNotificacion 🔒
 
@@ -561,6 +633,46 @@ Fallo: `404 { "ok": false, "error": "Notificación no encontrada" }`.
 ### DELETE /notificaciones/:idNotificacion 🔒
 
 Sin body (solo admin). Devuelve `200 { "ok": true, "data": { "eliminado": true } }`.
+Fallo: `403 { "ok": false, "error": "Solo el administrador puede eliminar notificaciones" }`.
+
+## Tiempo real (WebSocket)
+
+Canal `ws://<host>/ws`. El handshake valida el **JWT de la cookie `auth_token`** (o `Authorization: Bearer`); sin token válido cierra con `1008`.
+
+Al conectar llega `{ "evento": "conectado", "id_usuario": 4 }`. El cliente se suscribe a sus grupos:
+
+```json
+{ "accion": "suscribir", "grupos": [3, 5] }
+```
+
+Se valida pertenencia (`obtenerGrupoConRol`); solo se aceptan grupos del usuario. Respuesta `{ "evento": "suscripcion", "canales": ["usuario:4","grupo:3","grupo:5"] }`. También acepta `{ "accion": "desuscribir", "grupos": [3] }`.
+
+**Canales**: `usuario:<id>` (invitaciones dirigidas) y `grupo:<id>` (producto, estado, oferta, movimiento, invitación respondida).
+
+Cada evento es un sobre uniforme:
+
+```json
+{
+  "evento": "notificacion",
+  "accion": "oferta_encontrada",
+  "id_grupo": 3,
+  "notificacion": { "id_notificacion": 12, "id_grupo": 3, "tipo": "oferta_encontrada", "titulo": "10 oferta(s) para Leche", "descripcion": null, "fecha_creacion": "..." },
+  "datos": { "id_producto_lista": 7, "id_lista": 3, "nombre": "Leche", "ofertas": 10, "queryUsada": "leche La Serenisima Lacteos" }
+}
+```
+
+`accion` es el `tipo` del sistema. `datos` lleva el contexto extra de cada evento:
+
+| accion | datos |
+|---|---|
+| `producto_agregado` | `id_producto_lista`, `id_lista`, `nombre`, `cantidad` |
+| `producto_estado` | `id_producto_lista`, `id_lista`, `nombre`, `estado` |
+| `oferta_encontrada` | `id_producto_lista`, `id_lista`, `nombre`, `ofertas`, `queryUsada` |
+| `movimiento_agregado` | `id_movimiento`, `nombre`, `monto`, `tipo` |
+| `invitacion_recibida` | `id_invitacion`, `id_grupo`, `id_usuario_origen` |
+| `invitacion_respondida` | `id_invitacion`, `id_grupo`, `estado`, `id_usuario_destino` |
+
+Mensajes de error del canal: `{ "evento": "error", "error": "..." }` (JSON inválido o acción no soportada).
 
 ## Raíz y logs
 
@@ -575,6 +687,13 @@ Query opcional `?limite=` (1–200, default 50; ej. `/logs?limite=10`). Devuelve
 ```json
 { "ok": true, "data": { "logs": [{ "fecha": "2026-10-10 13:51:46", "metodo": "GET", "ruta": "/logs", "status": 401, "ms": 1, "idUsuario": null }], "total": 6 } }
 ```
+
+**Notas sobre logging:**
+- El backend usa **Pino** como logger central.
+- **Desarrollo (`NODE_ENV=development`)**: salida legible con `pino-pretty` (banner de arranque, logs de requests y errores formateados).
+- **Producción (`NODE_ENV=production`)**: salida estructurada en **JSON**.
+- Nivel configurable con `LOG_LEVEL` (`fatal|error|warn|info|debug|trace`, default `debug` en dev / `info` en prod).
+- Los requests se loguean en consola/stream y también se guardan en el **historial en memoria** (máximo 200) que expone este endpoint. Los errores `5xx` se loguean con detalle; los `4xx` no generan `logger.error`.
 
 ## Errores globales
 

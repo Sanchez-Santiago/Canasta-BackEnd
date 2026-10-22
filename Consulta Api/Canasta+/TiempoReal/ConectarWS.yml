@@ -1,0 +1,27 @@
+info:
+  name: ConectarWS
+  type: websocket
+  seq: 1
+
+websocket:
+  url: ws://localhost:3000/ws
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  # WebSocket `ws://localhost:3000/ws` (protegida)
+  El handshake valida el JWT de la cookie `auth_token` (o `Authorization: Bearer`).
+  Al conectar llega `{ "evento": "conectado", "id_usuario": N }`.
+  Luego suscribite a tus grupos enviando:
+      { "accion": "suscribir", "grupos": [2] }
+  Recibís `{ "evento": "suscripcion", "canales": [...] }` y, desde ahí, cada
+  evento del sistema (producto_agregado, oferta_encontrada, invitacion_recibida,
+  movimiento_agregado, ...) como sobre uniforme:
+      { "evento": "notificacion", "accion": "...", "id_grupo": N,
+        "notificacion": { ...fila persistida... }, "datos": { ... } }
+  También `{ "accion": "desuscribir", "grupos": [2] }`.

@@ -1,15 +1,12 @@
-// Reglas del tablon: publica/borra admin; lee cualquier miembro.
+// Reglas del tablon: las notificaciones las genera el sistema; el admin
+// puede limpiar el historial; cualquier miembro puede leer.
 import {
-  crearNotificacion,
   obtenerNotificacionPorId,
   obtenerNotificacionesPorGrupo,
   eliminarNotificacion,
 } from "./notificacion.model";
 import { obtenerGrupoConRol } from "../grupo/grupo.model";
-import type {
-  CrearNotificacionBody,
-  NotificacionRespuesta,
-} from "./notificacion.scheme";
+import type { NotificacionRespuesta } from "./notificacion.scheme";
 
 /** Error con status para responder desde el controller. */
 export class NotificacionError extends Error {
@@ -44,25 +41,9 @@ async function exigirMiembro(idUsuario: number, idGrupo: number) {
 async function exigirAdmin(idUsuario: number, idGrupo: number) {
   const miembro = await exigirMiembro(idUsuario, idGrupo);
   if (miembro.rol !== "administrador") {
-    throw new NotificacionError("Solo el administrador puede gestionar anuncios", 403);
+    throw new NotificacionError("Solo el administrador puede eliminar notificaciones", 403);
   }
   return miembro;
-}
-
-/** Publica: solo admin. */
-export async function crearNotificacionService(
-  idUsuario: number,
-  idGrupo: number,
-  datos: CrearNotificacionBody
-): Promise<{ notificacion: NotificacionRespuesta }> {
-  await exigirAdmin(idUsuario, idGrupo);
-  const creada = await crearNotificacion(idGrupo, {
-    tipo: datos.tipo,
-    titulo: datos.titulo,
-    descripcion: datos.descripcion,
-  });
-  if (!creada) throw new NotificacionError("No se pudo crear la notificación", 500);
-  return { notificacion: aNotificacionRespuesta(creada) };
 }
 
 /** Lee: cualquier miembro. */

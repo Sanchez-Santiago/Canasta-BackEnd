@@ -1,5 +1,6 @@
 // Entrada: arma Express, monta routers y arranca.
 // GET / es publica y sirve la home HTML con la documentacion.
+import { createServer } from "http";
 import express from "express";
 import cookieParser from "cookie-parser";
 import { authMiddleware } from "./shared/middlewares/auth";
@@ -18,6 +19,9 @@ import { renderHomePage } from "./shared/home";
 import { getDocumentacionEndpoints } from "./shared/home-datos";
 import { getDb } from "./config/database";
 import { env } from "./config/env";
+import { barrerOfertasVencidas } from "./modules/oferta/oferta.service";
+import { montarWebSockets } from "./shared/ws/ws";
+import { logger } from "./shared/logger";
 
 const app = express();
 
@@ -65,25 +69,19 @@ const PORT = env.PORT || 3000;
 const HOST = "0.0.0.0";
 const API_URL = `http://localhost:${PORT}`;
 
-/** Verifica la DB y levanta el servidor; sale si no conecta. */
-async function iniciarServidor() {
-  try {
-    const db = getDb();
-    await db.execute("SELECT 1");
+/** Banner de arranque claro y legible. */
+function loguearArranque(): void {
+  const endpoints = getDocumentacionEndpoints().flatMap((g) => g.endpoints);
+  const publicas = endpoints.filter((e) => e.auth === "publica").length;
+
+  if (env.NODE_ENV === "development") {
     console.log("✅ Conexión a la base de datos establecida correctamente");
     console.log(`📌 URL de la base de datos: ${env.TURSO_DATABASE_URL}`);
-  } catch (error) {
-    console.error("❌ Error al conectar con la base de datos:", error);
-    process.exit(1);
-  }
-
-  app.listen(PORT, HOST, () => {
-    const endpoints = getDocumentacionEndpoints().flatMap((g) => g.endpoints);
-    const publicas = endpoints.filter((e) => e.auth === "publica").length;
     console.log(`🚀 Canasta+ backend escuchando en ${HOST}:${PORT}`);
     console.log(`🌍 Entorno: ${env.NODE_ENV}`);
     console.log(`🔗 API disponible en: ${API_URL}`);
     console.log(`🏠 Home HTML en: ${API_URL}/`);
+    console.log(`🔌 WebSocket en vivo: ws://localhost:${PORT}/ws`);
     console.log(
       `📚 ${endpoints.length} endpoints (${publicas} públicos, ${endpoints.length - publicas} protegidos)`
     );
@@ -94,6 +92,62 @@ async function iniciarServidor() {
     console.log(`   POST ${API_URL}/auth/login`);
     console.log(`   GET  ${API_URL}/auth/yo`);
     console.log(`   POST ${API_URL}/auth/logout`);
+    return;
+  }
+
+  logger.info(
+    {
+      port: PORT,
+      host: HOST,
+      env: env.NODE_ENV,
+      apiUrl: API_URL,
+      ws: `ws://localhost:${PORT}/ws`,
+      endpoints: {
+        total: endpoints.length,
+        publicas,
+        protegidas: endpoints.length - publicas,
+      },
+    },
+    `Canasta+ backend escuchando en ${HOST}:${PORT}`
+  );
+}
+
+/** Verifica la DB y levanta el servidor; sale si no conecta. */
+async function iniciarServidor() {
+  try {
+    const db = getDb();
+    await db.execute("SELECT 1");
+
+    if (env.NODE_ENV === "development") {
+      console.log("✅ Conexión a la base de datos establecida correctamente");
+      console.log(`📌 URL de la base de datos: ${env.TURSO_DATABASE_URL}`);
+    } else {
+      logger.info({ dbUrl: env.TURSO_DATABASE_URL }, "Conexión a la base de datos establecida correctamente");
+    }
+
+    // El sistema limpia solo: barre las ofertas vencidas al arrancar.
+    const vencidas = await barrerOfertasVencidas();
+    if (vencidas > 0) {
+      if (env.NODE_ENV === "development") {
+        console.log(`🧹 Ofertas vencidas eliminadas: ${vencidas}`);
+      } else {
+        logger.info({ vencidas }, "Ofertas vencidas eliminadas");
+      }
+    }
+  } catch (error) {
+    if (env.NODE_ENV === "development") {
+      console.error("❌ Error al conectar con la base de datos:", error);
+    } else {
+      logger.error({ err: error }, "Error al conectar con la base de datos");
+    }
+    process.exit(1);
+  }
+
+  const server = createServer(app);
+  montarWebSockets(server);
+
+  server.listen(PORT, HOST, () => {
+    loguearArranque();
   });
 }
 

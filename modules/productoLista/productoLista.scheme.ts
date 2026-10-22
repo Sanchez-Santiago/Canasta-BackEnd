@@ -5,6 +5,24 @@ import { z } from "zod";
 export const prioridadItemSchema = z.enum(["prioritario", "esencial", "secundario"]);
 // Estados validos del item.
 export const estadoItemSchema = z.enum(["pendiente", "comprado", "omitido"]);
+// Unidades de compra del item (distintas de oferta.unidad_medida, que es kg|L).
+export const unidadMedidaItemSchema = z.enum([
+  "unidad",
+  "kg",
+  "gramos",
+  "L",
+  "ml",
+  "docena",
+  "media_docena",
+  "paquete",
+  "caja",
+  "botella",
+  "lata",
+  "sobre",
+  "rollo",
+  "bolsa",
+  "m",
+]);
 
 /** Body de POST /listas/:idLista/productos. */
 export const crearProductoListaBodySchema = z.object({
@@ -35,6 +53,19 @@ export const crearProductoListaBodySchema = z.object({
     .trim()
     .optional()
     .nullable(),
+  unidad_medida: unidadMedidaItemSchema.optional(),
+  marca: z
+    .string()
+    .max(120, "La marca no puede superar 120 caracteres")
+    .trim()
+    .optional()
+    .nullable(),
+  categoria: z
+    .string()
+    .max(120, "La categoría no puede superar 120 caracteres")
+    .trim()
+    .optional()
+    .nullable(),
   estado: estadoItemSchema.optional(),
 });
 
@@ -57,6 +88,9 @@ export const productoListaRespuestaSchema = z.object({
   cantidad: z.number(),
   precio_estimado_unitario: z.number().int().min(0).nullable().optional(),
   codigo_producto: z.string().nullable().optional(),
+  unidad_medida: unidadMedidaItemSchema,
+  marca: z.string().nullable().optional(),
+  categoria: z.string().nullable().optional(),
   estado: estadoItemSchema,
   fecha_creacion: z.string(),
 });
@@ -77,6 +111,13 @@ export const idListaParamSchemaItems = z.object({
     .pipe(z.number().int().positive()),
 });
 
+/** Filtros opcionales del listado de items de una lista. */
+export const listarProductosQuerySchema = z.object({
+  marca: z.string().max(120).trim().optional(),
+  categoria: z.string().max(120).trim().optional(),
+  unidad_medida: unidadMedidaItemSchema.optional(),
+});
+
 export type CrearProductoListaBody = z.infer<typeof crearProductoListaBodySchema>;
 export type ActualizarProductoListaBody = z.infer<typeof actualizarProductoListaBodySchema>;
 export type CambiarEstadoItemBody = z.infer<typeof cambiarEstadoItemBodySchema>;
@@ -91,6 +132,9 @@ export type ProductoListaDB = {
   cantidad: number;
   precio_estimado_unitario: number | null;
   codigo_producto: string | null;
+  unidad_medida: "unidad" | "kg" | "gramos" | "L" | "ml" | "docena" | "media_docena" | "paquete" | "caja" | "botella" | "lata" | "sobre" | "rollo" | "bolsa" | "m";
+  marca: string | null;
+  categoria: string | null;
   estado: "pendiente" | "comprado" | "omitido";
   fecha_creacion: string;
 };
