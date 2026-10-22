@@ -1,5 +1,6 @@
 // Entrada: arma Express, monta routers y arranca.
 // GET / es publica y sirve la home HTML con la documentacion.
+import { createServer } from "http";
 import express from "express";
 import cookieParser from "cookie-parser";
 import { authMiddleware } from "./shared/middlewares/auth";
@@ -19,6 +20,7 @@ import { getDocumentacionEndpoints } from "./shared/home-datos";
 import { getDb } from "./config/database";
 import { env } from "./config/env";
 import { barrerOfertasVencidas } from "./modules/oferta/oferta.service";
+import { montarWebSockets } from "./shared/ws/ws";
 
 const app = express();
 
@@ -84,13 +86,17 @@ async function iniciarServidor() {
     process.exit(1);
   }
 
-  app.listen(PORT, HOST, () => {
+  const server = createServer(app);
+  montarWebSockets(server);
+
+  server.listen(PORT, HOST, () => {
     const endpoints = getDocumentacionEndpoints().flatMap((g) => g.endpoints);
     const publicas = endpoints.filter((e) => e.auth === "publica").length;
     console.log(`🚀 Canasta+ backend escuchando en ${HOST}:${PORT}`);
     console.log(`🌍 Entorno: ${env.NODE_ENV}`);
     console.log(`🔗 API disponible en: ${API_URL}`);
     console.log(`🏠 Home HTML en: ${API_URL}/`);
+    console.log(`🔌 WebSocket en vivo: ws://localhost:${PORT}/ws`);
     console.log(
       `📚 ${endpoints.length} endpoints (${publicas} públicos, ${endpoints.length - publicas} protegidos)`
     );

@@ -13,4 +13,6 @@ settings:
   maxRedirects: 5
 docs: |-
   # GET `/grupos/:idGrupo/notificaciones` (protegida)
-  Tablon de anuncios del grupo. Solo miembros.
+  Historial de notificaciones del grupo. Solo miembros.
+  Las genera el sistema (producto, oferta, movimiento, invitación); también
+  llegan en vivo por WebSocket.

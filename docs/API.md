@@ -611,28 +611,19 @@ Fallos: `403 { "ok": false, "error": "Solo el destinatario puede responder" }`; 
 Sin body (origen o admin, solo pendientes). Devuelve `200 { "ok": true, "data": { "eliminado": true } }`.
 Fallo: `409 { "ok": false, "error": "Solo se pueden cancelar invitaciones pendientes" }`.
 
-## Notificaciones (tablón, sin PUT)
+## Notificaciones (generadas por el sistema)
+
+Las crea **el sistema** (no una persona): producto agregado, cambio de estado, oferta encontrada, movimiento e invitaciones. Se **persisten** (historial del grupo) y además se **empujan en vivo** por WebSocket. No hay `POST`: nadie las crea a mano.
+
+`tipo` es un enum cerrado: `producto_agregado`, `producto_estado`, `oferta_encontrada`, `invitacion_recibida`, `invitacion_respondida`, `movimiento_agregado`.
 
 ### GET /grupos/:idGrupo/notificaciones 🔒
 
 Params: `:idGrupo`. Devuelve `200`:
 
 ```json
-{ "ok": true, "data": { "notificaciones": [{ "id_notificacion": 1, "id_grupo": 11, "tipo": "general", "titulo": "Bienvenidos", "descripcion": "Grupo de prueba", "fecha_creacion": "2026-10-09 22:52:28" }] } }
+{ "ok": true, "data": { "notificaciones": [{ "id_notificacion": 1, "id_grupo": 11, "tipo": "producto_agregado", "titulo": "Nuevo producto: Leche", "descripcion": "Entera 1L", "fecha_creacion": "2026-10-09 22:52:28" }] } }
 ```
-
-### POST /grupos/:idGrupo/notificaciones 🔒
-
-Recibe body (solo admin), ejemplo:
-
-```json
-{ "tipo": "general", "titulo": "Reunión de compras", "descripcion": "Sábado a la mañana" }
-```
-
-- Requeridos: `tipo` (2–50, libre: `grupo|lista|movimiento|oferta|invitacion|general`), `titulo` (2–100). Opcional: `descripcion` (≤250).
-
-Devuelve `201 { ok:true, data:{ notificacion:{...} } }`.
-Fallo: `403 { "ok": false, "error": "Solo el administrador puede gestionar anuncios" }`.
 
 ### GET /notificaciones/:idNotificacion 🔒
 
@@ -642,6 +633,46 @@ Fallo: `404 { "ok": false, "error": "Notificación no encontrada" }`.
 ### DELETE /notificaciones/:idNotificacion 🔒
 
 Sin body (solo admin). Devuelve `200 { "ok": true, "data": { "eliminado": true } }`.
+Fallo: `403 { "ok": false, "error": "Solo el administrador puede eliminar notificaciones" }`.
+
+## Tiempo real (WebSocket)
+
+Canal `ws://<host>/ws`. El handshake valida el **JWT de la cookie `auth_token`** (o `Authorization: Bearer`); sin token válido cierra con `1008`.
+
+Al conectar llega `{ "evento": "conectado", "id_usuario": 4 }`. El cliente se suscribe a sus grupos:
+
+```json
+{ "accion": "suscribir", "grupos": [3, 5] }
+```
+
+Se valida pertenencia (`obtenerGrupoConRol`); solo se aceptan grupos del usuario. Respuesta `{ "evento": "suscripcion", "canales": ["usuario:4","grupo:3","grupo:5"] }`. También acepta `{ "accion": "desuscribir", "grupos": [3] }`.
+
+**Canales**: `usuario:<id>` (invitaciones dirigidas) y `grupo:<id>` (producto, estado, oferta, movimiento, invitación respondida).
+
+Cada evento es un sobre uniforme:
+
+```json
+{
+  "evento": "notificacion",
+  "accion": "oferta_encontrada",
+  "id_grupo": 3,
+  "notificacion": { "id_notificacion": 12, "id_grupo": 3, "tipo": "oferta_encontrada", "titulo": "10 oferta(s) para Leche", "descripcion": null, "fecha_creacion": "..." },
+  "datos": { "id_producto_lista": 7, "id_lista": 3, "nombre": "Leche", "ofertas": 10, "queryUsada": "leche La Serenisima Lacteos" }
+}
+```
+
+`accion` es el `tipo` del sistema. `datos` lleva el contexto extra de cada evento:
+
+| accion | datos |
+|---|---|
+| `producto_agregado` | `id_producto_lista`, `id_lista`, `nombre`, `cantidad` |
+| `producto_estado` | `id_producto_lista`, `id_lista`, `nombre`, `estado` |
+| `oferta_encontrada` | `id_producto_lista`, `id_lista`, `nombre`, `ofertas`, `queryUsada` |
+| `movimiento_agregado` | `id_movimiento`, `nombre`, `monto`, `tipo` |
+| `invitacion_recibida` | `id_invitacion`, `id_grupo`, `id_usuario_origen` |
+| `invitacion_respondida` | `id_invitacion`, `id_grupo`, `estado`, `id_usuario_destino` |
+
+Mensajes de error del canal: `{ "evento": "error", "error": "..." }` (JSON inválido o acción no soportada).
 
 ## Raíz y logs
 

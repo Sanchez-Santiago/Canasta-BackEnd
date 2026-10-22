@@ -208,8 +208,9 @@ Se conserva si el término encabeza el nombre o si la categoría arranca con él
 | GET / POST | `/grupos/:idGrupo/invitaciones` | protegida | Listar (miembro) / invitar por email (admin) |
 | GET | `/invitaciones/recibidas` | protegida | Mis pendientes como destino |
 | PATCH / DELETE | `/invitaciones/:idInvitacion…` | protegida | Responder (destino) / cancelar (origen o admin) |
-| GET / POST | `/grupos/:idGrupo/notificaciones` | protegida | Leer (miembro) / publicar (admin, sin PUT) |
+| GET | `/grupos/:idGrupo/notificaciones` | protegida | Historial del grupo. Solo miembros (las genera el sistema) |
 | GET / DELETE | `/notificaciones/:idNotificacion…` | protegida | Ver (miembro) / borrar (admin) |
+| WS | `ws://.../ws` | protegida | Canal en vivo: notificaciones y ofertas al instante |
 
 ## Lógica por módulo
 
@@ -221,7 +222,7 @@ Se conserva si el término encabeza el nombre o si la categoría arranca con él
 - **movimiento**: `GROUP BY tipo` + `construirResumen` (balance); editar/borrar creador/admin.
 - **oferta**: catálogo con `id_producto_lista` nullable (NULL = global; con valor = del producto, de ahí salen grupo/admin/creador); arrays `categoria_ruta`/`cuotas`/`promos` en JSON-TEXT; el buscador va a las fuentes en vivo y filtra vencidas; al crear un producto se auto-sincronizan sus ofertas; las vencidas las borra el sistema (barrido al arrancar + endpoint).
 - **invitacion**: email→id, anti-duplicada; aceptada inserta miembro **antes** de marcar.
-- **notificacion**: tablón por grupo, sin update.
+- **notificacion**: las genera el sistema (no hay POST); `tipo` es un enum del sistema; el admin puede borrar.
 
 ## Probar con Bruno
 

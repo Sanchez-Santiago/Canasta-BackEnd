@@ -380,32 +380,41 @@ export function getDocumentacionEndpoints(): GrupoEndpoints[] {
     },
     {
       titulo: "Notificaciones - tablon grupal",
-      icono: "📢",
-      descripcion: "Anuncios del grupo: publica el admin, leen los miembros.",
+      icono: "🔔",
+      descripcion: "Las genera el sistema; las leen los miembros. También llegan en vivo por WebSocket.",
       endpoints: [
         {
           metodo: "GET",
           ruta: "/grupos/:idGrupo/notificaciones",
           auth: "protegida",
-          descripcion: "Anuncios del grupo. Solo miembros.",
-        },
-        {
-          metodo: "POST",
-          ruta: "/grupos/:idGrupo/notificaciones",
-          auth: "protegida",
-          descripcion: "Publica anuncio (tipo, titulo). Solo admin.",
+          descripcion: "Notificaciones del grupo (historial). Solo miembros.",
         },
         {
           metodo: "GET",
           ruta: "/notificaciones/:idNotificacion",
           auth: "protegida",
-          descripcion: "Detalle del anuncio. Solo miembros de su grupo.",
+          descripcion: "Detalle de la notificación. Solo miembros de su grupo.",
         },
         {
           metodo: "DELETE",
           ruta: "/notificaciones/:idNotificacion",
           auth: "protegida",
-          descripcion: "Borra anuncio. Solo admin.",
+          descripcion: "Borra notificación. Solo admin.",
+        },
+      ],
+    },
+    {
+      titulo: "Tiempo real - WebSocket",
+      icono: "🔌",
+      descripcion:
+        "Canal ws://.../ws autenticado por cookie. Suscribe a grupos y recibe notificaciones al instante.",
+      endpoints: [
+        {
+          metodo: "GET",
+          ruta: "ws://.../ws",
+          auth: "protegida",
+          descripcion:
+            "Canal en vivo. Handshake valida el JWT; el cliente manda {\"accion\":\"suscribir\",\"grupos\":[..]} y recibe eventos (producto_agregado, oferta_encontrada, invitacion_recibida, ...).",
         },
       ],
     },

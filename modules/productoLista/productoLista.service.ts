@@ -9,6 +9,7 @@ import {
 } from "./productoLista.model";
 import { obtenerPermisosSobreLista } from "../lista/lista.model";
 import { sincronizarOfertasDeProducto } from "../oferta/oferta.service";
+import { emitirEvento } from "../../shared/eventos/eventos";
 import type {
   CrearProductoListaBody,
   ActualizarProductoListaBody,
@@ -76,6 +77,23 @@ export async function crearProductoListaService(
   const creado = await crearProductoLista(idLista, idUsuario, datos as any);
   if (!creado) throw new ProductoListaError("No se pudo crear el producto", 500);
 
+  // Avisa al grupo que se agrego un producto (persiste + push en vivo).
+  const idGrupo = p.idGrupo;
+  if (idGrupo != null) {
+    await emitirEvento({
+      idGrupo,
+      tipo: "producto_agregado",
+      titulo: `Nuevo producto: ${creado.nombre}`,
+      descripcion: creado.descripcion ?? undefined,
+      extra: {
+        id_producto_lista: creado.id_producto_lista,
+        id_lista: idLista,
+        nombre: creado.nombre,
+        cantidad: creado.cantidad,
+      },
+    });
+  }
+
   // Reutiliza el modulo de ofertas: busca en vivo y guarda las encontradas.
   // Si la busqueda falla, el producto ya esta creado: no se revierte.
   let ofertas = { guardadas: 0, errores: [] as string[], queryUsada: creado.nombre };
@@ -86,6 +104,22 @@ export async function crearProductoListaService(
       errores: r.errores,
       queryUsada: r.queryUsada,
     };
+
+    // Si aparecieron ofertas, avisa al grupo con el resumen.
+    if (idGrupo != null && r.guardadas > 0) {
+      await emitirEvento({
+        idGrupo,
+        tipo: "oferta_encontrada",
+        titulo: `${r.guardadas} oferta(s) para ${creado.nombre}`,
+        extra: {
+          id_producto_lista: creado.id_producto_lista,
+          id_lista: idLista,
+          nombre: creado.nombre,
+          ofertas: r.guardadas,
+          queryUsada: r.queryUsada,
+        },
+      });
+    }
   } catch (err) {
     ofertas.errores = [
       `No se pudieron buscar ofertas: ${String((err as Error).message).slice(0, 120)}`,
@@ -147,6 +181,20 @@ export async function cambiarEstadoItemService(
   if (!rol) throw new ProductoListaError("No perteneces al grupo de esta lista", 403);
   const actualizado = await actualizarProductoLista(idProductoLista, { estado: datos.estado });
   if (!actualizado) throw new ProductoListaError("No se pudo cambiar el estado", 500);
+
+  // Avisa al grupo del cambio de estado.
+  await emitirEvento({
+    idGrupo: ctx.idGrupo,
+    tipo: "producto_estado",
+    titulo: `${actualizado.nombre}: ${datos.estado}`,
+    extra: {
+      id_producto_lista: idProductoLista,
+      id_lista: actualizado.id_lista,
+      nombre: actualizado.nombre,
+      estado: datos.estado,
+    },
+  });
+
   return { producto: aItemRespuesta(actualizado) };
 }
 

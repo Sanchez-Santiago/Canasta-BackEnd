@@ -363,7 +363,16 @@ CREATE TABLE notificacion (
 
     id_grupo INTEGER NOT NULL,
 
-    tipo TEXT NOT NULL,
+    -- Tipos que genera el sistema (no una persona).
+    tipo TEXT NOT NULL
+        CHECK (tipo IN (
+            'producto_agregado',
+            'producto_estado',
+            'oferta_encontrada',
+            'invitacion_recibida',
+            'invitacion_respondida',
+            'movimiento_agregado'
+        )),
 
     titulo TEXT NOT NULL,
 

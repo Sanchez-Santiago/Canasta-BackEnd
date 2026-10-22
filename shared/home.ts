@@ -34,7 +34,7 @@ function reglasClave(): string[] {
     "Producto de lista: <strong>unidad_medida</strong> (de compra: docena, rollo, kg...), <strong>marca</strong> y <strong>categoria</strong>. Su <code>unidad_medida</code> es distinta de la de oferta (kg|L).",
     "Ofertas: catalogo global + ofertas por producto. El buscador no guarda nada; al crear un producto se buscan (nombre+marca+categoria) y guardan sus ofertas. Eliminar: admin del grupo, creador de la lista o del producto (el global solo lo borra el sistema). Las vencidas las limpia el backend.",
     "Invitar: <strong>solo admin</strong> y por email; aceptar suma como miembro.",
-    "Notificaciones: <strong>tablon sin edicion</strong>; publica y borra el admin.",
+    "Notificaciones: las genera el <strong>sistema</strong> (producto agregado, oferta encontrada, movimiento, invitación); llegan en vivo por <strong>WebSocket</strong> (<code>ws://.../ws</code>) y quedan en el historial. El admin puede borrarlas.",
   ];
 }
 

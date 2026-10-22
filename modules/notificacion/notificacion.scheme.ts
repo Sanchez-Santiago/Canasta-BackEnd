@@ -1,30 +1,21 @@
-// Zod de anuncios: tipo libre, titulo y descripcion opcional.
+// Zod de notificaciones: las genera el sistema, no una persona.
 import { z } from "zod";
 
-/** Body de POST /grupos/:idGrupo/notificaciones. */
-export const crearNotificacionBodySchema = z.object({
-  tipo: z
-    .string({ required_error: "El tipo es obligatorio" })
-    .min(2, "El tipo debe tener al menos 2 caracteres")
-    .max(50, "El tipo no puede superar 50 caracteres")
-    .trim(),
-  titulo: z
-    .string({ required_error: "El título es obligatorio" })
-    .min(2, "El título debe tener al menos 2 caracteres")
-    .max(100, "El título no puede superar 100 caracteres")
-    .trim(),
-  descripcion: z
-    .string()
-    .max(250, "La descripción no puede superar 250 caracteres")
-    .trim()
-    .optional(),
-});
+/** Tipos que puede emitir el sistema (mismo enum que `shared/eventos`). */
+export const tipoSistemaSchema = z.enum([
+  "producto_agregado",
+  "producto_estado",
+  "oferta_encontrada",
+  "invitacion_recibida",
+  "invitacion_respondida",
+  "movimiento_agregado",
+]);
 
-/** Anuncio expuesto en la API. */
+/** Notificacion expuesta en la API. */
 export const notificacionRespuestaSchema = z.object({
   id_notificacion: z.number().int().positive(),
   id_grupo: z.number().int().positive(),
-  tipo: z.string(),
+  tipo: tipoSistemaSchema,
   titulo: z.string(),
   descripcion: z.string().nullable().optional(),
   fecha_creacion: z.string(),
@@ -46,8 +37,6 @@ export const idGrupoParamSchemaNotificaciones = z.object({
     .pipe(z.number().int().positive()),
 });
 
-export type CrearNotificacionBody = z.infer<typeof crearNotificacionBodySchema>;
-/** Fila de notificacion. */
 export type NotificacionDB = {
   id_notificacion: number;
   id_grupo: number;
